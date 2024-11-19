@@ -1,5 +1,4 @@
 ﻿using ChatApp.Domain.Enums;
-using ChatApp.Domain.ValueObjects;
 
 namespace ChatApp.Domain.Entities
 {
@@ -7,7 +6,7 @@ namespace ChatApp.Domain.Entities
     {
         public required string SenderId { get; set; }     
         public string? RecipientId { get; set; }   
-        public required MessageContent Content { get; set; }
+        public required string Content { get; set; }
         public MessageType Type { get; set; }
         public MessageStatus Status { get; set; }
         public DateTime SentAt { get; set; }

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ChatApp.Infrastructure.Migrations
 {
     [DbContext(typeof(ChatAppContext))]
-    [Migration("20241118090820_Create")]
+    [Migration("20241119092121_Create")]
     partial class Create
     {
         /// <inheritdoc />
@@ -46,6 +46,9 @@ namespace ChatApp.Infrastructure.Migrations
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<string>("FullName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Gender")
                         .HasColumnType("int");
@@ -146,7 +149,7 @@ namespace ChatApp.Infrastructure.Migrations
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
 
-                    b.Property<DateTime?>("ReadAt")
+                    b.Property<DateTime>("ReadAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("RecipientId")
@@ -172,6 +175,30 @@ namespace ChatApp.Infrastructure.Migrations
                     b.HasIndex("SenderId");
 
                     b.ToTable("Messages");
+                });
+
+            modelBuilder.Entity("ChatApp.Domain.Entities.MessageFile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("MessageId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PublicId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Url")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MessageId");
+
+                    b.ToTable("MessageFile");
                 });
 
             modelBuilder.Entity("ChatApp.Domain.Entities.Notification", b =>
@@ -399,6 +426,17 @@ namespace ChatApp.Infrastructure.Migrations
                     b.Navigation("Sender");
                 });
 
+            modelBuilder.Entity("ChatApp.Domain.Entities.MessageFile", b =>
+                {
+                    b.HasOne("ChatApp.Domain.Entities.Message", "Message")
+                        .WithMany("Files")
+                        .HasForeignKey("MessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Message");
+                });
+
             modelBuilder.Entity("ChatApp.Domain.Entities.Notification", b =>
                 {
                     b.HasOne("ChatApp.Domain.Entities.ChatRoom", "ChatRoom")
@@ -502,6 +540,11 @@ namespace ChatApp.Infrastructure.Migrations
                     b.Navigation("Messages");
 
                     b.Navigation("UserChatRooms");
+                });
+
+            modelBuilder.Entity("ChatApp.Domain.Entities.Message", b =>
+                {
+                    b.Navigation("Files");
                 });
 #pragma warning restore 612, 618
         }

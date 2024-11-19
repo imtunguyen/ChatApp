@@ -19,12 +19,12 @@ namespace ChatApp.Infrastructure.Repositories
         public async Task<PagedList<Message>> GetAllAsync(MessageParams baseParams, bool tracked = false)
         {
             var query = tracked 
-                ? _context.Messages.AsQueryable() 
-                : _context.Messages.AsNoTracking().AsQueryable();
+                ? _context.Messages.Include(m => m.Files).AsQueryable() 
+                : _context.Messages.Include(m => m.Files).AsNoTracking().AsQueryable();
             if(!string.IsNullOrEmpty(baseParams.Search))
             {
-                query = query.Where(m => m.Content.Value != null &&
-                            m.Content.Value.ToLower().Contains(baseParams.Search.ToLower()));
+                query = query.Where(m => m.Content != null &&
+                            m.Content.ToLower().Contains(baseParams.Search.ToLower()));
             }
 
             if(!string.IsNullOrEmpty(baseParams.OrderBy))
@@ -41,9 +41,15 @@ namespace ChatApp.Infrastructure.Repositories
             return await query.ApplyPaginationAsync(baseParams.PageNumber, baseParams.PageSize);
         }
 
+        public async Task<Message> GetMessageByIdAsync(int id)
+        {
+            var message = await _context.Messages.Include(m => m.Files).FirstOrDefaultAsync(m => m.Id == id);
+            return message;
+        }
+
         public async Task<IEnumerable<Message>> GetMessagesByUser(string userId)
         {
-            return await _context.Messages.Where(m => m.SenderId == userId).ToListAsync();
+            return await _context.Messages.Include(m => m.Files).Where(m => m.SenderId == userId).ToListAsync();
         }
     }
 }

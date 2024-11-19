@@ -2,8 +2,7 @@
 {
     public class MessageFileDto
     {
-        public required string FilePath { get; set; }
-        public string? FileType { get; set; }
-        public long FileSize { get; set; }
+        public int Id { get; set; }
+        public required string Url { get; set; }
     }
 }
