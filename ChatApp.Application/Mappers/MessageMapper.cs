@@ -1,6 +1,8 @@
 ﻿using ChatApp.Application.DTOs.Message;
 using ChatApp.Domain.Entities;
+using ChatApp.Domain.Enums;
 using ChatApp.Domain.ValueObjects;
+using Microsoft.AspNetCore.Http;
 
 namespace ChatApp.Application.Mappers
 {
@@ -10,11 +12,12 @@ namespace ChatApp.Application.Mappers
         {
             return new Message
             {
-                Content = messageAddDto.Content.Value,
+                Content = messageAddDto.Content ?? string.Empty,
                 SenderId = messageAddDto.SenderId,
                 RecipientId = messageAddDto.RecipientId,
-                Type = messageAddDto.Type,
-                Status = messageAddDto.Status,
+                ChatRoomId = messageAddDto.ChatRoomId,
+                Type = GetMessageType(messageAddDto.Files),
+                Status = MessageStatus.Sent, 
                 SentAt = DateTime.UtcNow.AddHours(7),
             };
         }
@@ -23,12 +26,12 @@ namespace ChatApp.Application.Mappers
             return new Message
             {
                 Id = messageUpdateDto.Id,
-                Content = messageUpdateDto.Content.Value,
+                Content = messageUpdateDto.Content ?? string.Empty,
                 SenderId = messageUpdateDto.SenderId,
                 RecipientId = messageUpdateDto.RecipientId,
-                Type = messageUpdateDto.Type,
+                ChatRoomId = messageUpdateDto.ChatRoomId,
                 Status = messageUpdateDto.Status,
-                SentAt = DateTime.UtcNow.AddHours(7),
+                SentAt = DateTimeOffset.UtcNow,
             };
         }
         public static MessageDto EntityToMessageDto(Message message)
@@ -36,10 +39,10 @@ namespace ChatApp.Application.Mappers
             return new MessageDto
             {
                 Id = message.Id,
-                Content = MessageContent.FromString(message.Content),
+                Content = message.Content,
                 SenderId = message.SenderId,
                 RecipientId = message.RecipientId,
-                Type = message.Type,
+                ChatRoomId = message.ChatRoomId,
                 Status = message.Status,
                 SentAt = message.SentAt,
                 ReadAt = message.ReadAt,
@@ -54,6 +57,29 @@ namespace ChatApp.Application.Mappers
                 Url = messageFile.Url ?? string.Empty,
             };
 
+        }
+        public static MessageType GetMessageType(List<IFormFile> files)
+        {
+            if (files == null || !files.Any())
+            {
+                return MessageType.Text;
+            }
+            foreach(var file in files)
+            {
+                if (file.ContentType.Contains("image"))
+                {
+                    return MessageType.Image;
+                }
+                if (file.ContentType.Contains("video"))
+                {
+                    return MessageType.Video;
+                }
+                if (file.ContentType.Contains("application"))
+                {
+                    return MessageType.File;
+                }
+            }
+            return MessageType.Text;
         }
     }
 }

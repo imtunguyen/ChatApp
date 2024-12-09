@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace ChatApp.Infrastructure.Services
@@ -46,7 +47,7 @@ namespace ChatApp.Infrastructure.Services
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.Now.AddDays(7),
+                Expires = DateTime.Now.AddMinutes(15),
                 SigningCredentials = creds,
                 Issuer = _config["Token:Issuer"],
                 Audience = _config["Token:Audience"]
@@ -57,5 +58,14 @@ namespace ChatApp.Infrastructure.Services
             return tokenHandler.WriteToken(token);
 
         }
-    }
+        public async Task<string> RefreshToken()
+        {
+            var random = new byte[32];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(random);
+                return Convert.ToBase64String(random);
+            }
+        } 
+    } 
 }

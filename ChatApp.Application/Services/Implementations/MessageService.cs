@@ -12,71 +12,108 @@ namespace ChatApp.Application.Services.Implementations
 {
     public class MessageService : IMessageService
     {
-        private readonly IUnitOfWork _unit;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ICloudinaryService _cloudinaryService;
-        public MessageService(IUnitOfWork unit, ICloudinaryService cloudinaryService)
+        public MessageService(IUnitOfWork unitOfWork, ICloudinaryService cloudinaryService)
         {
-            _unit = unit;
+            _unitOfWork = unitOfWork;
             _cloudinaryService = cloudinaryService;
         }
+
+        //Add Mesage
         public async Task<MessageDto> AddMessageAsync(MessageAddDto messageAddDto)
         {
             var message = MessageMapper.MessageAddDtoToEntity(messageAddDto);
             if (messageAddDto.Files != null)
             {
-                foreach(var file in messageAddDto.Files)
+                foreach (var file in messageAddDto.Files)
                 {
-                    var uploadResult = await _cloudinaryService.UploadFileAsync(file, messageAddDto.Type);
-                    if (uploadResult.Error != null)
+                    var uploadResult = await _cloudinaryService.UploadFileAsync(file);
+                    message.Files.Add(new MessageFile
                     {
-                        throw new BadRequestException("Lỗi khi thêm file");
-                    }
-                    var messageFile = new MessageFile
-                    {
-                        PublicId = uploadResult.PublicId,
-                        Url = uploadResult.Url,
-                    };
-                    message.Files.Add(messageFile);
-
+                        Url = uploadResult.Url!.ToString(),
+                        PublicId = uploadResult.PublicId
+                    });
                 }
             }
-            await _unit.MessageRepository.AddAsync(message);
-            return await _unit.CompleteAsync()
+            await _unitOfWork.MessageRepository.AddAsync(message);
+            return await _unitOfWork.CompleteAsync()
                 ? MessageMapper.EntityToMessageDto(message)
-                : throw new BadRequestException("Thêm tin nhắn thất bại");
+                : throw new BadRequestException("Lỗi khi tạo tin nhắn");
+
         }
+        //Update Message
+
         public async Task<MessageDto> UpdateMessageAsync(MessageUpdateDto messageUpdateDto)
         {
-            throw new NotImplementedException();
+            var message = MessageMapper.MessageUpdateDtoToEntity(messageUpdateDto);
+            message = await _unitOfWork.MessageRepository.GetAsync(m => m.Id == messageUpdateDto.Id);
+            if (message == null)
+            {
+                throw new NotFoundException("Không tìm thấy tin nhắn");
+            }
+            _unitOfWork.MessageRepository.Update(message);
+            return await _unitOfWork.CompleteAsync()
+                ? MessageMapper.EntityToMessageDto(message)
+                : throw new BadRequestException("Lỗi khi cập nhật tin nhắn");
         }
-        public async Task<MessageDto> DeleteMessageAsync(Expression<Func<Message, bool>> expression)
+
+        //Delete Message
+
+        public async Task<bool> DeleteMessageAsync(Expression<Func<Message, bool>> expression)
         {
-            throw new NotImplementedException();
+            var message = await _unitOfWork.MessageRepository.GetAsync(expression);
+            if(message == null)
+            {
+                throw new NotFoundException("Không tìm thấy tin nhắn");
+            }
+            message.IsDeleted = true;
+            await _unitOfWork.MessageRepository.UpdateMessageAsync(message);
+            return await _unitOfWork.CompleteAsync();
         }
+
+        //Get Methods
 
         public async Task<PagedList<MessageDto>> GetAllAsync(MessageParams messageParams, bool tracked)
         {
-            var messages = await _unit.MessageRepository.GetAllAsync(messageParams, tracked);
-            var messageDto = messages.Select(MessageMapper.EntityToMessageDto);
-            return new PagedList<MessageDto>(messageDto, messages.TotalCount, messages.CurrentPage, messages.PageSize);
+            var messages = await _unitOfWork.MessageRepository.GetAllAsync(messageParams, tracked);
+            if(messages == null)
+            {
+                throw new NotFoundException("Không tìm thấy tin nhắn");
+            }
+            return new PagedList<MessageDto>(messages.Select(MessageMapper.EntityToMessageDto), messages.TotalCount, messages.CurrentPage, messages.PageSize);
         }
 
-        public async Task<MessageDto> GetLastMessageAsync(int messageId)
+        public  Task<MessageDto> GetLastMessageAsync(int messageId)
         {
             throw new NotImplementedException();
         }
 
-        public async Task<IEnumerable<MessageDto>> GetMessagesByUserAsync(string userId)
+        public async Task<MessageDto> GetMessageByIdAsync(int messageId)
+        {
+            var message = await _unitOfWork.MessageRepository.GetMessageByIdAsync(messageId);
+            if (message == null)
+            {
+                throw new NotFoundException("Không tìm thấy tin nhắn");
+            }
+            return MessageMapper.EntityToMessageDto(message);
+        }
+
+        public Task<IEnumerable<MessageDto>> GetMessagesByUserAsync(string userId)
         {
             throw new NotImplementedException();
         }
 
-        public async Task<MessageDto> GetMessageByIdAsync(int id)
+        public Task<int> GetUnreadMessagesCountAsync(string userId)
         {
-            var message = await _unit.MessageRepository.GetMessageByIdAsync(id);
-            return message != null 
-                ? MessageMapper.EntityToMessageDto(message) 
-                : throw new NotFoundException("Tin nhắn không tồn tại");
+            throw new NotImplementedException();
         }
+
+        public Task<bool> MarkMessageAsReadAsync(int messageId)
+        {
+            throw new NotImplementedException();
+        }
+
+
     }
 }

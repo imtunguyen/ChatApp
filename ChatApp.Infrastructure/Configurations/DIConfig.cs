@@ -12,7 +12,9 @@ namespace ChatApp.Infrastructure.Configurations
     {
         public static void AddDIConfig(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddScoped<IMessageService, MessageService>();
+            services.AddScoped<IMessageService, MessageService>(); 
+            services.AddScoped<IChatRoomService, ChatRoomService>();
+            
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddSignalR();
         }

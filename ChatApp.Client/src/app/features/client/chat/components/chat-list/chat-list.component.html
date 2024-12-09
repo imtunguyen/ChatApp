@@ -1,0 +1,30 @@
+<div class="chat-list border-end h-100">
+  <div class="p-3">
+    <input
+      tuiInput
+      type="text"
+      placeholder="Search"
+      class="form-control"
+      aria-label="Search"
+    />
+  </div>
+  <ul class="list-group list-group-flush">
+    <li
+      *ngFor="let user of users"
+      class="list-group-item d-flex align-items-center py-3 px-4"
+      (click)="selectUser(user)"
+    >
+      <img
+        [src]="user.profilePictureUrl"
+        class="rounded-circle me-3"
+        alt="Avatar"
+        width="45"
+        height="45"
+      />
+      <div class="d-flex flex-column">
+        <div class="fw-bold">{{ user.fullName }}</div>
+        <small class="text-muted">message</small>
+      </div>
+    </li>
+  </ul>
+</div>

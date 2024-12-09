@@ -9,8 +9,9 @@ namespace ChatApp.Domain.Entities
         public string? ProfilePictureUrl { get; set; }
         public GenderType Gender { get; set; }
         public UserStatus Status { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime? LastActiveAt { get; set; }
-        public ICollection<Message>? Messages { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
+        public DateTimeOffset? LastActiveAt { get; set; } 
+        public DateTimeOffset UpdatedAt { get; set; }
+        public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
     }
 }

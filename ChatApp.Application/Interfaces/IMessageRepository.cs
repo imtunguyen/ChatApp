@@ -6,6 +6,8 @@ namespace ChatApp.Application.Interfaces
 {
     public interface IMessageRepository : IRepository<Message>
     {
+
+        Task UpdateMessageAsync(Message message);
         Task<IEnumerable<Message>> GetMessagesByUser(string userId);
         Task<Message> GetMessageByIdAsync(int id);
         Task<PagedList<Message>> GetAllAsync(MessageParams baseParams, bool tracked = false);

@@ -14,6 +14,7 @@ namespace ChatApp.Infrastructure.Configurations
             services.Configure<EmailConfig>(configuration.GetSection("MailSettings"));
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ITokenService, TokenService>();
+            services.AddScoped<ICloudinaryService, CloudinaryService>();
 
 
             // Configure token expiration for ASP.NET Identity tokens

@@ -1,6 +1,10 @@
-﻿namespace ChatApp.Application.Interfaces
+﻿using ChatApp.Domain.Entities;
+
+namespace ChatApp.Application.Interfaces
 {
-    public interface IChatRoomRepository
+    public interface IChatRoomRepository : IRepository<ChatRoom>
     {
+        Task<IEnumerable<ChatRoom>> GetChatRoomsByUser(string userId);
+        Task UpdateChatRoomAsync(ChatRoom chatRoom);
     }
 }

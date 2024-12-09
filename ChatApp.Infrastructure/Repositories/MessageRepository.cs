@@ -51,5 +51,17 @@ namespace ChatApp.Infrastructure.Repositories
         {
             return await _context.Messages.Include(m => m.Files).Where(m => m.SenderId == userId).ToListAsync();
         }
+
+        public async Task UpdateMessageAsync(Message message)
+        {
+            var messageToUpdate = await _context.Messages.FirstOrDefaultAsync(m => m.Id == message.Id);
+            if (messageToUpdate != null)
+            {
+                messageToUpdate.Content = message.Content;
+                messageToUpdate.IsDeleted = message.IsDeleted;
+                message.Status = message.Status;
+                messageToUpdate.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+        }
     }
 }

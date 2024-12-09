@@ -5,6 +5,6 @@ namespace ChatApp.Domain.Entities
     public class AppRole : IdentityRole
     {
         public string? Description { get; set; }
-        public DateTime CreatedAt { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
     }
 }

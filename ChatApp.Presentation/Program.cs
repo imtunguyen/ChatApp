@@ -1,4 +1,4 @@
-using ChatApp.Infrastructure.Configurations;
+﻿using ChatApp.Infrastructure.Configurations;
 using ChatApp.Presentation.Middleware;
 using ChatApp.Presentation.SignalR;
 

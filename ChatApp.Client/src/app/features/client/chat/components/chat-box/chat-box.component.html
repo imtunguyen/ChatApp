@@ -1,0 +1,42 @@
+<div class="chat-box h-100 d-flex flex-column">
+  <!-- Chat Header -->
+  <div class="chat-header p-3 bg-light d-flex justify-content-between align-items-center shadow-sm">
+    <h5 class="mb-0">{{ selectedUser?.name }}</h5>
+    <button tuiButton size="s" appearance="icon">
+      <i class="fa-solid fa-list"></i>
+    </button>
+  </div>
+
+  <!-- Chat Messages -->
+  <div class="chat-messages flex-grow-1 p-3 overflow-auto">
+    <div *ngIf="messages.length === 0" class="text-center text-muted">
+      <tui-svg src="tuiIconChat"></tui-svg>
+      <p>No messages yet</p>
+    </div>
+    <div *ngFor="let message of messages" class="mb-3">
+      <div [class]="message.isSent ? 'text-end' : 'text-start'">
+        <div
+          class="p-2 bg-light rounded-3 d-inline-block max-w-75"
+          [ngClass]="{ 'bg-primary text-white': message.isSent, 'bg-secondary text-white': !message.isSent }"
+        >
+          {{ message.text }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Input -->
+  <div class="chat-input p-3 d-flex align-items-center border-top">
+    <input
+      tuiInput
+      type="text"
+      placeholder="Type a message..."
+      [(ngModel)]="newMessage"
+      class="form-control me-2"
+      (keydown.enter)="sendMessage()"
+    />
+    <button tuiButton (click)="sendMessage()" class="ms-2">
+      <i class="fa-solid fa-paper-plane"></i>
+    </button>
+  </div>
+</div>

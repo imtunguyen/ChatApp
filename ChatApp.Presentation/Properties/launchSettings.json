@@ -18,18 +18,12 @@
       }
     }
   },
-  "$schema": "http://json.schemastore.org/launchsettings.json",
   "iisSettings": {
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
-    "IIS Express": {
-      "commandName": "IISExpress",
-      "launchBrowser": true,
-      "launchUrl": "api/values",
-      "environmentVariables": {
-        "“ASPNETCORE_ENVIRONMENT\": \"Development\""
-      },
-      "applicationUrl": "http://localhost:44316/"
+    "iisExpress": {
+      "applicationUrl": "http://localhost:25678",
+      "sslPort": 0
     }
-  }
+  },
 }

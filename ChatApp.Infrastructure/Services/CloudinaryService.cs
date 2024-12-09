@@ -1,4 +1,5 @@
 ﻿using ChatApp.Application.DTOs.Cloudinary;
+using ChatApp.Application.Mappers;
 using ChatApp.Application.Services.Abstracts;
 using ChatApp.Domain.Enums;
 using ChatApp.Infrastructure.Configurations;
@@ -14,10 +15,10 @@ namespace ChatApp.Infrastructure.Services
         private readonly Cloudinary _cloud;
         public CloudinaryService(IOptions<CloudinarySettings> config)
         {
-            var acc = new Account(config.Value.ApiKey, config.Value.ApiSecret, config.Value.CloudName);
+            var acc = new Account(config.Value.CloudName, config.Value.ApiKey, config.Value.ApiSecret);
             _cloud = new Cloudinary(acc);
         }
-        public async Task<FileUploadResult> UploadFileAsync(IFormFile formFile, MessageType messageType)
+        public async Task<FileUploadResult> UploadFileAsync(IFormFile formFile)
         {
             RawUploadResult uploadResult = null;
             using var stream = formFile.OpenReadStream();
@@ -26,7 +27,7 @@ namespace ChatApp.Infrastructure.Services
             {
                 return new FileUploadResult { Error = "Tệp rỗng." };
             }
-
+            MessageType messageType = MessageMapper.GetMessageType(new List<IFormFile> { formFile });
             switch (messageType)
             {
                 case MessageType.Image:
@@ -93,6 +94,34 @@ namespace ChatApp.Infrastructure.Services
             };
         }
 
-        
+        public async Task<FileUploadResult> UploadPhotoAsync(IFormFile file)
+        {
+            var uploadResult = new ImageUploadResult();
+            if(file.Length > 0)
+            {
+                using var stream = file.OpenReadStream();
+                var uploadParams = new ImageUploadParams
+                {
+                    File = new FileDescription(file.FileName, stream),
+                    Transformation = new Transformation().Height(500).Width(500).Crop("fill").Gravity("face"),
+                    Folder = "chatapp"
+                };
+                uploadResult = await _cloud.UploadAsync(uploadParams);
+
+            }
+            if (uploadResult.Error != null)
+            {
+                return new FileUploadResult
+                {
+                    Error = uploadResult.Error.Message
+                };
+            }
+            return new FileUploadResult
+            {
+                PublicId = uploadResult.PublicId,
+                Url = uploadResult.SecureUrl.ToString(),
+                Error = null
+            };
+        }
     }
 }

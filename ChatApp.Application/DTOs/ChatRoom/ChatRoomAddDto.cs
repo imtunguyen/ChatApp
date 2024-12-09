@@ -1,6 +1,8 @@
 ﻿namespace ChatApp.Application.DTOs.ChatRoom
 {
-    public class ChatRoomAddDto
+    public class ChatRoomAddDto : ChatRoomBase
     {
+        
+
     }
 }

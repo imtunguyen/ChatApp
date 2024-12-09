@@ -2,12 +2,16 @@
 {
     public class ChatRoom : BaseEntity    
     {
-        public required string Name { get; set; } 
-        public string? CreatedById { get; set; } 
-        public DateTime CreatedAt { get; set; }
+        public required string Name { get; set; }
+        public required string CreatorId { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
+        public DateTimeOffset UpdatedAt { get; set; }
+        public bool IsDeleted { get; set; } = false;
 
         // Navigation 
-        public ICollection<UserChatRoom>? UserChatRooms { get; set; } 
-        public ICollection<Message>? Messages { get; set; } 
+        public AppUser? Creator { get; set; }
+        public virtual ICollection<UserChatRoom>? UserChatRooms { get; set; } 
+        public virtual ICollection<Message>? Messages { get; set; } 
+
     }
 }

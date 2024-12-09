@@ -4,6 +4,7 @@
     {
         IMessageRepository MessageRepository { get; }
         IChatRoomRepository ChatRoomRepository { get; }
+        IUserChatRoomRepository UserChatRoomRepository { get; }
 
         Task<bool> CompleteAsync();
     }

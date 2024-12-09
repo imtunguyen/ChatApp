@@ -15,13 +15,15 @@ namespace ChatApp.Presentation.Controllers
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
         private readonly ITokenService _tokenService;
+        private readonly ICloudinaryService _cloudinaryService;
 
         public AuthController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager,
-            ITokenService tokenService)
+            ITokenService tokenService, ICloudinaryService cloudinaryService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _tokenService = tokenService;
+            _cloudinaryService = cloudinaryService;
         }
 
         [HttpPost("login")]
@@ -33,7 +35,7 @@ namespace ChatApp.Presentation.Controllers
             }
             EmailAddress email = null;
             Username username = null;
-
+            var password = new Password(dto.Password);
             try
             {
                 email = new EmailAddress(dto.UserNameOrEmail);
@@ -48,7 +50,7 @@ namespace ChatApp.Presentation.Controllers
                 : await _userManager.FindByNameAsync(username.Value);
 
 
-            var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password.Value, false);
+            var result = await _signInManager.CheckPasswordSignInAsync(user, password.Value, false);
 
             if (!result.Succeeded)
             {
@@ -61,14 +63,18 @@ namespace ChatApp.Presentation.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterDto dto)
+        public async Task<IActionResult> Register([FromForm] RegisterDto dto)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var emailExists = await CheckEmailAndUserNameExistAsync(dto.Email.Value, dto.UserName.Value);
+            var userName = new Username(dto.UserName); 
+            var email = new EmailAddress(dto.Email);
+            var password = new Password(dto.Password);
+
+            var emailExists = await CheckEmailAndUserNameExistAsync(email.Value, userName.Value);
             if (emailExists.Item1)
             {
                 return BadRequest("Email đã tồn tại");
@@ -82,12 +88,23 @@ namespace ChatApp.Presentation.Controllers
             var user = new AppUser
             {
                 FullName = dto.FullName,
-                UserName = dto.UserName.Value,
-                Email = dto.Email.Value,
+                UserName = userName.Value,
+                Email = email.Value,
                 Gender = dto.Gender
             };
 
-            var result = await _userManager.CreateAsync(user, dto.Password.Value);
+            if (dto.ProfilePicture != null && dto.ProfilePicture.Length > 0)
+            {
+                var uploadResult = await _cloudinaryService.UploadPhotoAsync(dto.ProfilePicture);
+                user.ProfilePictureUrl = uploadResult?.Url;
+            }
+            else
+            {
+                user.ProfilePictureUrl = "avatar.jpg";
+            }
+
+
+            var result = await _userManager.CreateAsync(user, password.Value);
             if (!result.Succeeded)
             {
                 return BadRequest(result.Errors);
@@ -96,6 +113,14 @@ namespace ChatApp.Presentation.Controllers
             var userDto = UserMapper.EntityToUserDto(user);
             userDto.Token = await _tokenService.CreateToken(user);
             return Ok(userDto);
+        }
+
+        [HttpGet("GetUsers")]
+        public async Task<IActionResult> GetUsers()
+        {
+            var users = await _userManager.Users.ToListAsync();
+            var userDtos = users.Select(UserMapper.EntityToUserDto);
+            return Ok(userDtos);
         }
 
 

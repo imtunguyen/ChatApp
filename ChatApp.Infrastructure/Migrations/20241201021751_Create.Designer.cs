@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ChatApp.Infrastructure.Migrations
 {
     [DbContext(typeof(ChatAppContext))]
-    [Migration("20241119092121_Create")]
+    [Migration("20241201021751_Create")]
     partial class Create
     {
         /// <inheritdoc />
@@ -37,8 +37,8 @@ namespace ChatApp.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -53,8 +53,8 @@ namespace ChatApp.Infrastructure.Migrations
                     b.Property<int>("Gender")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("LastActiveAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("LastActiveAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
@@ -116,13 +116,14 @@ namespace ChatApp.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedById")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Owner")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -149,8 +150,8 @@ namespace ChatApp.Infrastructure.Migrations
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
 
-                    b.Property<DateTime>("ReadAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ReadAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("RecipientId")
                         .HasColumnType("nvarchar(max)");
@@ -159,8 +160,8 @@ namespace ChatApp.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<DateTime>("SentAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("SentAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -246,8 +247,11 @@ namespace ChatApp.Infrastructure.Migrations
                     b.Property<int>("ChatRoomId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("JoinedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("JoinedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("RemovedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("UserId", "ChatRoomId");
 
@@ -413,7 +417,7 @@ namespace ChatApp.Infrastructure.Migrations
 
             modelBuilder.Entity("ChatApp.Domain.Entities.Message", b =>
                 {
-                    b.HasOne("ChatApp.Domain.Entities.ChatRoom", null)
+                    b.HasOne("ChatApp.Domain.Entities.ChatRoom", "ChatRoom")
                         .WithMany("Messages")
                         .HasForeignKey("ChatRoomId");
 
@@ -422,6 +426,8 @@ namespace ChatApp.Infrastructure.Migrations
                         .HasForeignKey("SenderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ChatRoom");
 
                     b.Navigation("Sender");
                 });

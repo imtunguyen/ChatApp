@@ -20,12 +20,6 @@ namespace ChatApp.Domain.ValueObjects
                 return Value == content.Value;
             return false;
         }
-        public static MessageContent FromString(string value)
-        {
-            return new MessageContent(value);
-        }
-
-        public override string ToString() => Value;
 
         public override int GetHashCode()
         {
