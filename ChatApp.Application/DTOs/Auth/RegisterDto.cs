@@ -10,7 +10,7 @@ namespace ChatApp.Application.DTOs.Auth
         public required string UserName { get; set; }
         public required string Email { get; set; }
         public required string Password { get; set; }
-        public GenderType Gender { get; set; }
+        public required string Gender { get; set; }
         public IFormFile? ProfilePicture { get; set; }
 
     }

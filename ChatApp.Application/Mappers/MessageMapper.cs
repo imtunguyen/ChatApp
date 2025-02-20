@@ -15,7 +15,7 @@ namespace ChatApp.Application.Mappers
                 Content = messageAddDto.Content ?? string.Empty,
                 SenderId = messageAddDto.SenderId,
                 RecipientId = messageAddDto.RecipientId,
-                ChatRoomId = messageAddDto.ChatRoomId,
+                GroupId = messageAddDto.GroupId,
                 Type = GetMessageType(messageAddDto.Files),
                 Status = MessageStatus.Sent, 
                 SentAt = DateTime.UtcNow.AddHours(7),
@@ -27,9 +27,7 @@ namespace ChatApp.Application.Mappers
             {
                 Id = messageUpdateDto.Id,
                 Content = messageUpdateDto.Content ?? string.Empty,
-                SenderId = messageUpdateDto.SenderId,
-                RecipientId = messageUpdateDto.RecipientId,
-                ChatRoomId = messageUpdateDto.ChatRoomId,
+                
                 Status = messageUpdateDto.Status,
                 SentAt = DateTimeOffset.UtcNow,
             };
@@ -42,8 +40,9 @@ namespace ChatApp.Application.Mappers
                 Content = message.Content,
                 SenderId = message.SenderId,
                 RecipientId = message.RecipientId,
-                ChatRoomId = message.ChatRoomId,
+                GroupId = message.GroupId,
                 Status = message.Status,
+                Type = message.Type,
                 SentAt = message.SentAt,
                 ReadAt = message.ReadAt,
                 Files = message.Files.Select(MessageFileToMessageFileDto).ToList(),

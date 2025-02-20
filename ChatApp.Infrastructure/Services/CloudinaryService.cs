@@ -1,6 +1,6 @@
-﻿using ChatApp.Application.DTOs.Cloudinary;
+﻿using ChatApp.Application.Abstracts.Services;
+using ChatApp.Application.DTOs.Cloudinary;
 using ChatApp.Application.Mappers;
-using ChatApp.Application.Services.Abstracts;
 using ChatApp.Domain.Enums;
 using ChatApp.Infrastructure.Configurations;
 using CloudinaryDotNet;
@@ -13,7 +13,7 @@ namespace ChatApp.Infrastructure.Services
     public class CloudinaryService : ICloudinaryService
     {
         private readonly Cloudinary _cloud;
-        public CloudinaryService(IOptions<CloudinarySettings> config)
+        public CloudinaryService(IOptions<CloudinaryConfig> config)
         {
             var acc = new Account(config.Value.CloudName, config.Value.ApiKey, config.Value.ApiSecret);
             _cloud = new Cloudinary(acc);
@@ -49,8 +49,8 @@ namespace ChatApp.Infrastructure.Services
                     uploadResult = await _cloud.UploadAsync(videoUploadParams);
                     break;
 
-                case MessageType.File:
-                    var rawUploadParams = new RawUploadParams
+                case MessageType.Audio:
+                    var rawUploadParams = new VideoUploadParams
                     {
                         File = new FileDescription(formFile.FileName, stream),
                         Folder = "chatapp"

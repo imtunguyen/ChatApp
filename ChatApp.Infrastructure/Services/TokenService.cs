@@ -1,71 +1,63 @@
-﻿using ChatApp.Application.Services.Abstracts;
-using ChatApp.Domain.Entities;
-using Microsoft.AspNetCore.Identity;
+﻿
+using ChatApp.Application.Abstracts.Services;
+using ChatApp.Infrastructure.Configuration;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace ChatApp.Infrastructure.Services
 {
     public class TokenService : ITokenService
     {
-        private readonly IConfiguration _config;
-        private readonly UserManager<AppUser> _userManager;
-        private readonly RoleManager<AppRole> _roleManager;
-        private readonly SymmetricSecurityKey _key;
-
-        public TokenService(IConfiguration config, UserManager<AppUser> userManager, RoleManager<AppRole> roleManager)
+        private readonly TokenConfig _config;
+        public TokenService(IOptions<TokenConfig> config)
         {
-            _config = config;
-            _userManager = userManager;
-            _roleManager = roleManager;
-            _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Token:Key"]!));
+            _config = config.Value;
         }
-        public async Task<string> CreateToken(AppUser user)
+
+        public string GenerateRefreshToken()
         {
-            var claims = new List<Claim>
+            var randomNumber = new byte[32];
+            using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+            rng.GetBytes(randomNumber);
+            return Convert.ToBase64String(randomNumber);
+        }
+
+        public string GenerateToken(IEnumerable<Claim> claims)
+        {
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config.SecretKey));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var token = new JwtSecurityToken(
+                _config.Issuer,
+                _config.Audience,
+                claims,
+                expires: DateTime.Now.AddMinutes(_config.ExpireMin),
+                signingCredentials: creds
+            );
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
+        {
+            var key = Encoding.UTF8.GetBytes(_config.SecretKey);
+            var tokenValidationParameters = new TokenValidationParameters
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.UserName!),
-                new Claim(ClaimTypes.Email, user.Email!)
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = false,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = _config.Issuer,
+                ValidAudience = _config.Audience,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ClockSkew = TimeSpan.Zero
             };
-
-            var roles = await _userManager.GetRolesAsync(user);
-            foreach (var role in roles)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, role));
-                // Lấy thêm các quyền (claims) từ role
-                var roleClaims = await _roleManager.GetClaimsAsync(await _roleManager.FindByNameAsync(role));
-                claims.AddRange(roleClaims);
-            }
-
-            var creds = new SigningCredentials(_key, SecurityAlgorithms.HmacSha512Signature);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.Now.AddMinutes(15),
-                SigningCredentials = creds,
-                Issuer = _config["Token:Issuer"],
-                Audience = _config["Token:Audience"]
-            };
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
+            var claimsPrincipal = new ClaimsPrincipal(
+                new JwtSecurityTokenHandler().ValidateToken(token, tokenValidationParameters, out var securityToken));
+            return claimsPrincipal;
 
         }
-        public async Task<string> RefreshToken()
-        {
-            var random = new byte[32];
-            using (var rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(random);
-                return Convert.ToBase64String(random);
-            }
-        } 
-    } 
+    }
 }

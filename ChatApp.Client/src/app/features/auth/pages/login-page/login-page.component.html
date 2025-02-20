@@ -1,0 +1,54 @@
+<nz-card nzTitle="Login" class="login-card">
+  <form nz-form>
+    <div nz-row [nzGutter]="16">
+      <!-- Username or Email -->
+      <div nz-col nzSpan="8">
+        <nz-form-label>Username or Email</nz-form-label>
+      </div>
+      <div nz-col nzSpan="16">
+        <nz-form-item>
+          <nz-form-control>
+            <input
+              nz-input
+              placeholder="Username or Email"
+              [(ngModel)]="loginDto.userNameOrEmail"
+              name="userNameOrEmail"
+              required
+            />
+          </nz-form-control>
+        </nz-form-item>
+      </div>
+    </div>
+
+    <div nz-row [nzGutter]="16">
+      <!-- Password -->
+      <div nz-col nzSpan="8">
+        <nz-form-label>Password</nz-form-label>
+      </div>
+      <div nz-col nzSpan="16">
+        <nz-form-item>
+          <nz-form-control>
+            <input
+              nz-input
+              type="password"
+              placeholder="Password"
+              [(ngModel)]="loginDto.password"
+              name="password"
+              required
+            />
+          </nz-form-control>
+        </nz-form-item>
+      </div>
+    </div>
+
+    <div nz-row>
+      <div nz-col nzSpan="24" class="form-actions">
+        <button nz-button nzType="primary" (click)="onLogin()">Login</button>
+      </div>
+      <div nz-col nzSpan="24" class="register-link">
+        Chưa có tài khoản? 
+        <a class="register-text" (click)="navigateToRegister()">Đăng ký ngay</a>
+      </div>
+    </div>
+  </form>
+</nz-card>

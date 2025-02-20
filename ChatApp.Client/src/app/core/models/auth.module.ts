@@ -1,4 +1,5 @@
-import { Gender } from "./gender";
+import { GENDER_LIST } from "./enum/gender";
+
 
 export interface Login
 {
@@ -11,6 +12,6 @@ export interface Register
   userName: string;
   email: string;
   password: string;
-  gender: Gender;
+  gender: keyof typeof GENDER_LIST;
   profilePicture: File;
 }

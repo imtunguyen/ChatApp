@@ -1,0 +1,90 @@
+<div class="chat-list border-end">
+  <!-- Search và nút thêm bạn/nhóm -->
+  <div class="p-3 row align-items-center chat-header">
+    <div class="col-9">
+      <nz-input-group [nzSuffix]="suffixIconSearch" class="search-input">
+        <input type="text" nz-input placeholder="Search user..." />
+      </nz-input-group>
+      <ng-template #suffixIconSearch>
+        <nz-icon nzType="search" />
+      </ng-template>
+      <ng-template #searchIcon>
+        <i nz-icon nzType="search"></i>
+      </ng-template>
+    </div>
+    <div class="col-3 d-flex justify-content-end">
+      <button nz-button nzType="default" nzShape="circle" class="action-button" (click)="showAddFriendModal()">
+        <nz-modal [(nzVisible)]="isVisible" nzTitle="Thêm bạn" (nzOnCancel)="handleCancel()" [nzFooter]="customFooter">
+          <ng-container *nzModalContent>
+            <input nz-input [autofocus]="true" [nzSize]="'default'" placeholder="Nhập tên hoặc email"
+              [(ngModel)]="name" />
+
+            <div class="users">
+              <h4>Danh sách người dùng</h4>
+              <div *ngFor="let user of users" class="user-item d-flex align-items-center">
+                <img [src]="user.profilePictureUrl" class="rounded-circle user-avatar me-2" alt="Avatar" />
+                <span class="user-name flex-grow-1">{{ user.fullName }}</span>
+
+                <button
+                *ngIf="getFriendShipStatus(user.id) == 0"
+                nz-button
+                nzType="primary"
+                class="add-btn"
+                (click)="addFriend(user.id)"
+              >
+                Thêm
+              </button>
+      
+              <!-- Nút "Hủy" và "Đã gửi yêu cầu" (khi đã gửi yêu cầu) -->
+              <div *ngIf="getFriendShipStatus(user.id) == 1" class="d-flex align-items-center">
+                <span class="ms-2 text-muted">Đã gửi yêu cầu</span>
+                <button nz-button nzType="default" class="btn btn-danger" (click)="cancelFriendRequest(user.id)">
+                  Hủy
+                </button>
+                
+              </div>
+
+                <i class="bi bi-x-circle-fill remove-icon text-danger ms-2"></i>
+              </div>
+            </div>
+
+          </ng-container>
+        </nz-modal>
+        <nz-icon nzType="user-add" nzTheme="outline" />
+      </button>
+      <ng-template #customFooter>
+        <button nz-button nzType="default" class="btn btn-primary" (click)="handleCancel()">Đóng</button>
+      </ng-template>
+      <button nz-button nzType="default" nzShape="circle" class="action-button" (click)="showAddGroupModal()">
+        <nz-icon nzType="usergroup-add" nzTheme="outline" />
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs (nếu cần) -->
+  <!--
+    <nz-tabset>
+      <nz-tab nzTitle="Tất cả" (nzClick)="onClick('Maps')"></nz-tab>
+      <nz-tab nzTitle="Chưa đọc" (nzClick)="onClick('Settings')"></nz-tab>
+    </nz-tabset>
+    -->
+
+  <!-- Danh sách người dùng và phòng chat -->
+  <ul class="list-group list-group-flush chat-list-items">
+    <!-- Danh sách người dùng -->
+    <li *ngFor="let user of users" class="list-group-item d-flex align-items-center py-3 px-4 chat-user-item"
+      (click)="selectUser(user)">
+      <nz-avatar [nzSrc]="user.profilePictureUrl" nzSize="large" class="user-avatar"></nz-avatar>
+      <div class="d-flex flex-column">
+        <div class="user-name">{{ user.fullName }}</div>
+        <small class="last-message">message</small>
+      </div>
+    </li>
+
+    <!-- Danh sách phòng chat -->
+
+  </ul>
+</div>
+
+<!-- <app-add-friend></app-add-friend>
+  <app-add-group></app-add-group> -->

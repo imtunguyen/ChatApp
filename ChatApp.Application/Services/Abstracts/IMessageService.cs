@@ -11,9 +11,10 @@ namespace ChatApp.Application.Services.Abstracts
         Task<MessageDto> AddMessageAsync(MessageAddDto messageAddDto);
         Task<MessageDto> UpdateMessageAsync(MessageUpdateDto messageUpdateDto);
         Task<bool> DeleteMessageAsync(Expression<Func<Message, bool>> expression);
-        Task<MessageDto> GetLastMessageAsync(int messageId);
+        Task<MessageDto?> GetLastMessageAsync(string senderId, string recipientId);
+        Task<PagedList<MessageDto>> GetMessagesThreadAsync(MessageParams messageParams, string senderId, string recipientId);
         Task<MessageDto> GetMessageByIdAsync(int id);
-        Task<IEnumerable<MessageDto>> GetMessagesByUserAsync(string userId); //ChatRoom
+        Task<PagedList<MessageDto>> GetMessagesChatRoomAsync(MessageParams messageParams, int chatRoomId); //ChatRoom
         Task<PagedList<MessageDto>> GetAllAsync(MessageParams messageParams, bool tracked);
 
         Task<bool> MarkMessageAsReadAsync(int messageId);

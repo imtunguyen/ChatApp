@@ -6,7 +6,7 @@ namespace ChatApp.Application.DTOs.Message
     {
         public required string SenderId { get; set; }
         public string? RecipientId { get; set; }
-        public int? ChatRoomId { get; set; }
+        public int? GroupId { get; set; }
         public string? Content { get; set; }
     }
 }

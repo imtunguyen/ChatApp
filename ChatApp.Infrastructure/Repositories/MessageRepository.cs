@@ -40,16 +40,53 @@ namespace ChatApp.Infrastructure.Repositories
             }
             return await query.ApplyPaginationAsync(baseParams.PageNumber, baseParams.PageSize);
         }
-
         public async Task<Message> GetMessageByIdAsync(int id)
         {
             var message = await _context.Messages.Include(m => m.Files).FirstOrDefaultAsync(m => m.Id == id);
             return message;
         }
-
         public async Task<IEnumerable<Message>> GetMessagesByUser(string userId)
         {
             return await _context.Messages.Include(m => m.Files).Where(m => m.SenderId == userId).ToListAsync();
+        }
+
+        public async Task<Message?> GetLastMessageAsync(string senderId, string recipientId)
+        {
+            return await _context.Messages
+                .Include(m => m.Files)
+                .Where(m => (m.SenderId == senderId && m.RecipientId == recipientId)
+                    || (m.SenderId == recipientId && m.RecipientId == senderId))
+                .OrderByDescending(m => m.SentAt)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<PagedList<Message>> GetMessagesThreadAsync(MessageParams messageParams ,string senderId, string recipientId)
+        {
+            var query = _context.Messages
+                .Include(m => m.Files)
+                .Where(m => (m.SenderId == senderId && m.RecipientId == recipientId)
+                    || (m.SenderId == recipientId && m.RecipientId == senderId))
+                .AsQueryable();
+            if (!string.IsNullOrEmpty(messageParams.Search))
+            {
+                query = query.Where(c =>
+                    c.Content.ToLower().Contains(messageParams.Search.ToLower()));
+            }
+            
+            return await query.ApplyPaginationAsync(messageParams.PageNumber, messageParams.PageSize);                                      
+        }
+        public async Task<PagedList<Message>> GetMessagesChatRoomAsync(MessageParams messageParams, int groupId)
+        {
+            var query = _context.Messages
+                .Include(m => m.Files)
+                .Where(m => m.GroupId == groupId)
+                .AsQueryable(); 
+            if (!string.IsNullOrEmpty(messageParams.Search))
+            {
+                query = query.Where(c =>
+                    c.Content.ToLower().Contains(messageParams.Search.ToLower()));
+            }
+            return await query.ApplyPaginationAsync(messageParams.PageNumber, messageParams.PageSize);
         }
 
         public async Task UpdateMessageAsync(Message message)
@@ -63,5 +100,7 @@ namespace ChatApp.Infrastructure.Repositories
                 messageToUpdate.UpdatedAt = DateTimeOffset.UtcNow;
             }
         }
+
+        
     }
 }

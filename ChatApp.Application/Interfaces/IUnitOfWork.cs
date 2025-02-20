@@ -3,9 +3,9 @@
     public interface IUnitOfWork
     {
         IMessageRepository MessageRepository { get; }
-        IChatRoomRepository ChatRoomRepository { get; }
-        IUserChatRoomRepository UserChatRoomRepository { get; }
-
+        IGroupRepository GroupRepository { get; }
+        IUserGroupRepository UserGroupRepository { get; }
+        IFriendShipRepository FriendShipRepository { get; }
         Task<bool> CompleteAsync();
     }
 }

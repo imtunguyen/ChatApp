@@ -6,6 +6,7 @@
         Image,
         Video,
         File,
+        Audio
     }
 
 }

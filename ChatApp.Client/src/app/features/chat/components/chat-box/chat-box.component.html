@@ -1,0 +1,145 @@
+<div class="d-flex" style="height: 80vh">
+    <div class="chat-box h-100 col-8 flex-column d-flex"
+        [ngClass]="{ 'col-8' : isVisible, 'col-12' : !isVisible}">
+      <!-- Chat Header -->
+      <div class="chat-header p-3 d-flex justify-content-between align-items-center shadow-sm">
+        <div *ngIf="selectedUser">
+          <nz-avatar [nzSrc]="selectedUser.profilePictureUrl" nzSize="large" class="me-2"></nz-avatar>
+          {{ selectedUser.fullName }}
+        </div>
+        <div *ngIf="!selectedUser" class="text-muted">
+          <p>Please select a user to start chatting.</p>
+        </div>
+  
+        <div>
+          <button nz-button nzType="default" nzShape="circle" >
+            <i nz-icon nzType="team"></i>
+          </button>
+          <button nz-button nzType="default" nzShape="circle">
+            <i nz-icon nzType="video-camera"></i>
+          </button>
+          <button nz-button nzType="default" nzShape="circle">
+            <i nz-icon nzType="search"></i>
+          </button>
+          <button nz-button nzType="default" nzShape="circle" (click)="toggleChatDetail()">
+            <i nz-icon nzType="unordered-list"></i>
+          </button>
+        </div>
+      </div>
+  
+      <!-- Chat Messages -->
+      <div class="chat-messages flex-grow-1 p-3 overflow-auto">
+        <div *ngIf="messages.length === 0" class="text-center text-muted">
+          <nz-icon nzType="message" nzTheme="outline" style="font-size: 24px;"></nz-icon>
+          <p>No messages yet</p>
+        </div>
+        <div *ngFor="let message of messages" class="mb-3">
+          <div [class]="message.senderId === currentUser.id ? 'text-end' : 'text-start'">
+            <nz-avatar
+              *ngIf="selectedUser && message.senderId !== currentUser.id; else ChatRoom"
+              [nzSrc]="selectedUser.profilePictureUrl"
+              nzSize="small"
+              class="me-2"
+            ></nz-avatar>
+            <ng-template #ChatRoom>
+              <div *ngIf="selectedChatRoom && message.senderId !== currentUser.id">
+                <nz-avatar [nzSrc]="avatars[message.senderId]" nzSize="small" class="me-2"></nz-avatar>
+              </div>
+            </ng-template>
+  
+            <div class="p-2 bg-light rounded-3 d-inline-block max-w-75">
+              <div class="text" *ngIf="message.content !== null">{{ message.content }}</div>
+             
+              <div class="file-content" *ngFor="let file of message.files">
+                <img *ngIf="isImage(message)" [src]="file.url" class="message-media" />
+                <video *ngIf="isVideo(message)" [src]="file.url" controls class="message-media"></video>
+                <audio *ngIf="isAudio(message)" [src]="file.url" controls class="message-media"></audio>
+              </div>
+              
+            </div>
+            <div>
+              <i class="bi bi-emoji-smile"></i>
+              <i class="bi bi-three-dots-vertical"></i>
+              <i class="bi bi-reply-fill"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+  
+      <!-- Chat Input -->
+       
+      <div class="image-container" *ngIf="selectedFiles.length > 0">
+        <div *ngFor="let image of selectedFiles; let i = index" class="image-preview">
+          <img [src]="image.src" alt="Image Preview" />
+          <button class="close-button" (click)="removeImage(i)">X</button>
+        </div>
+        <div class="plus">
+          <label for="fileInputPlus">
+            <i nz-icon nzType="plus"></i>
+            <input type="file" id="fileInputPlus" (change)="onFileSelected($event)" multiple style="display: none;" />
+          </label>
+        </div>
+      </div>
+      <div class="chat-input p-3 d-flex align-items-center border-top">
+        
+        <div *ngIf="isRecording" class="recording-indicator">
+            <nz-spin nzSimple></nz-spin> Recording...
+        </div>
+    
+        <div *ngIf="audioUrl">
+            <audio [src]="audioUrl" controls></audio>
+            <button nz-button nzType="danger" (click)="audioUrl = null">X</button>
+        </div>
+      </div>
+      <div class="chat-input p-3 d-flex align-items-center border-top" *ngIf="selectedUser">
+        <div>
+          <button nz-button nzType="default" nzShape="circle" (mousedown)="startRecording()" (mouseup)="stopRecording()">
+            <i nz-icon nzType="audio"></i>
+          </button>
+        </div>
+       
+        <div class="plus" nz-button nzType="default" nzShape="circle">
+            <label for="fileInputPlus" >
+               
+                <i nz-icon nzType="picture"></i>
+         
+              <input type="file" id="fileInputPlus" (change)="onFileSelected($event)" multiple style="display: none;" />
+            </label>
+          </div>
+          
+        
+        <input
+          nz-input
+          type="text"
+          placeholder="Type a message..."
+          [(ngModel)]="newMessage"
+          class="form-control me-2"
+          (keydown.enter)="sendMessage()"
+        />
+  
+        <!-- Nút gửi tin nhắn -->
+        <button nz-button nzType="primary" (click)="sendMessage()" class="ms-2">
+          <i nz-icon nzType="send"></i>
+        </button>
+      </div>
+    </div>
+  
+    <!-- Chat Detail -->
+    <div class="col-4 flex-column d-flex"
+      [ngClass]="{ 'd-none': !isVisible, 'col-4': isVisible }">
+      <div class="text-center">
+        <h3>Thông tin hội thoại</h3>
+        <nz-avatar [nzSrc]="selectedUser?.profilePictureUrl" nzSize="large" class="mb-2"></nz-avatar>
+        <h5>{{ selectedUser?.fullName }}</h5>
+      </div>
+      <hr />
+      <h6>Shared Files</h6>
+      <ul>
+        <li *ngFor="let file of selectedUser?.files">{{ file }}</li>
+      </ul>
+    </div>
+  </div>
+  
+  <!-- <app-add-group></app-add-group> -->

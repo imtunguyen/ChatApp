@@ -17,7 +17,7 @@ namespace ChatApp.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.11")
+                .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -50,9 +50,6 @@ namespace ChatApp.Infrastructure.Migrations
                     b.Property<int>("Gender")
                         .HasColumnType("int");
 
-                    b.Property<DateTimeOffset?>("LastActiveAt")
-                        .HasColumnType("datetimeoffset");
-
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
 
@@ -82,11 +79,11 @@ namespace ChatApp.Infrastructure.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
@@ -105,7 +102,41 @@ namespace ChatApp.Infrastructure.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("ChatApp.Domain.Entities.ChatRoom", b =>
+            modelBuilder.Entity("ChatApp.Domain.Entities.FriendShip", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset?>("AcceptedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("AddresseeId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("RequesterId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AddresseeId");
+
+                    b.HasIndex("RequesterId");
+
+                    b.ToTable("FriendShips");
+                });
+
+            modelBuilder.Entity("ChatApp.Domain.Entities.Group", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -116,17 +147,49 @@ namespace ChatApp.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("CreatorId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int?>("FileId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Owner")
-                        .IsRequired()
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatorId");
+
+                    b.HasIndex("FileId");
+
+                    b.ToTable("Groups");
+                });
+
+            modelBuilder.Entity("ChatApp.Domain.Entities.GroupFile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("PublicId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Url")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("ChatRooms");
+                    b.ToTable("GroupFile");
                 });
 
             modelBuilder.Entity("ChatApp.Domain.Entities.Message", b =>
@@ -137,12 +200,14 @@ namespace ChatApp.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("ChatRoomId")
+                    b.Property<string>("Content")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("GroupId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
@@ -166,9 +231,12 @@ namespace ChatApp.Infrastructure.Migrations
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ChatRoomId");
+                    b.HasIndex("GroupId");
 
                     b.HasIndex("SenderId");
 
@@ -236,25 +304,39 @@ namespace ChatApp.Infrastructure.Migrations
                     b.ToTable("Notifications");
                 });
 
-            modelBuilder.Entity("ChatApp.Domain.Entities.UserChatRoom", b =>
+            modelBuilder.Entity("ChatApp.Domain.Entities.UserGroup", b =>
                 {
-                    b.Property<string>("UserId")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AppUserId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<int>("ChatRoomId")
+                    b.Property<int>("GroupId")
                         .HasColumnType("int");
 
                     b.Property<DateTimeOffset>("JoinedAt")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTimeOffset>("RemovedAt")
+                    b.Property<DateTimeOffset?>("RemovedAt")
                         .HasColumnType("datetimeoffset");
 
-                    b.HasKey("UserId", "ChatRoomId");
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
-                    b.HasIndex("ChatRoomId");
+                    b.HasKey("Id");
 
-                    b.ToTable("UserChatRooms");
+                    b.HasIndex("AppUserId");
+
+                    b.HasIndex("GroupId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserGroups");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -403,8 +485,8 @@ namespace ChatApp.Infrastructure.Migrations
                 {
                     b.HasBaseType("Microsoft.AspNetCore.Identity.IdentityRole");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
@@ -412,11 +494,47 @@ namespace ChatApp.Infrastructure.Migrations
                     b.HasDiscriminator().HasValue("AppRole");
                 });
 
+            modelBuilder.Entity("ChatApp.Domain.Entities.FriendShip", b =>
+                {
+                    b.HasOne("ChatApp.Domain.Entities.AppUser", "Addressee")
+                        .WithMany("ReceivedFriendRequests")
+                        .HasForeignKey("AddresseeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ChatApp.Domain.Entities.AppUser", "Requester")
+                        .WithMany("SentFriendRequests")
+                        .HasForeignKey("RequesterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Addressee");
+
+                    b.Navigation("Requester");
+                });
+
+            modelBuilder.Entity("ChatApp.Domain.Entities.Group", b =>
+                {
+                    b.HasOne("ChatApp.Domain.Entities.AppUser", "Creator")
+                        .WithMany()
+                        .HasForeignKey("CreatorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ChatApp.Domain.Entities.GroupFile", "File")
+                        .WithMany()
+                        .HasForeignKey("FileId");
+
+                    b.Navigation("Creator");
+
+                    b.Navigation("File");
+                });
+
             modelBuilder.Entity("ChatApp.Domain.Entities.Message", b =>
                 {
-                    b.HasOne("ChatApp.Domain.Entities.ChatRoom", "ChatRoom")
+                    b.HasOne("ChatApp.Domain.Entities.Group", "Group")
                         .WithMany("Messages")
-                        .HasForeignKey("ChatRoomId");
+                        .HasForeignKey("GroupId");
 
                     b.HasOne("ChatApp.Domain.Entities.AppUser", "Sender")
                         .WithMany("Messages")
@@ -424,7 +542,7 @@ namespace ChatApp.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ChatRoom");
+                    b.Navigation("Group");
 
                     b.Navigation("Sender");
                 });
@@ -442,7 +560,7 @@ namespace ChatApp.Infrastructure.Migrations
 
             modelBuilder.Entity("ChatApp.Domain.Entities.Notification", b =>
                 {
-                    b.HasOne("ChatApp.Domain.Entities.ChatRoom", "ChatRoom")
+                    b.HasOne("ChatApp.Domain.Entities.Group", "ChatRoom")
                         .WithMany()
                         .HasForeignKey("ChatRoomId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -463,21 +581,25 @@ namespace ChatApp.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ChatApp.Domain.Entities.UserChatRoom", b =>
+            modelBuilder.Entity("ChatApp.Domain.Entities.UserGroup", b =>
                 {
-                    b.HasOne("ChatApp.Domain.Entities.ChatRoom", "ChatRoom")
-                        .WithMany("UserChatRooms")
-                        .HasForeignKey("ChatRoomId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                    b.HasOne("ChatApp.Domain.Entities.AppUser", null)
+                        .WithMany("UserGroups")
+                        .HasForeignKey("AppUserId");
+
+                    b.HasOne("ChatApp.Domain.Entities.Group", "Group")
+                        .WithMany("UserGroups")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("ChatApp.Domain.Entities.AppUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("ChatRoom");
+                    b.Navigation("Group");
 
                     b.Navigation("User");
                 });
@@ -536,13 +658,19 @@ namespace ChatApp.Infrastructure.Migrations
             modelBuilder.Entity("ChatApp.Domain.Entities.AppUser", b =>
                 {
                     b.Navigation("Messages");
+
+                    b.Navigation("ReceivedFriendRequests");
+
+                    b.Navigation("SentFriendRequests");
+
+                    b.Navigation("UserGroups");
                 });
 
-            modelBuilder.Entity("ChatApp.Domain.Entities.ChatRoom", b =>
+            modelBuilder.Entity("ChatApp.Domain.Entities.Group", b =>
                 {
                     b.Navigation("Messages");
 
-                    b.Navigation("UserChatRooms");
+                    b.Navigation("UserGroups");
                 });
 
             modelBuilder.Entity("ChatApp.Domain.Entities.Message", b =>

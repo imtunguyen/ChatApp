@@ -1,16 +1,15 @@
-import { TuiRoot } from "@taiga-ui/core";
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { ChatListComponent } from "./features/client/chat/components/chat-list/chat-list.component";
-import { ChatDetailsComponent } from "./features/client/chat/components/chat-details/chat-details.component";
-import { ChatBoxComponent } from "./features/client/chat/components/chat-box/chat-box.component";
+import { RouterLink, RouterOutlet } from '@angular/router';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzLayoutModule } from 'ng-zorro-antd/layout';
+import { NzMenuModule } from 'ng-zorro-antd/menu';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, TuiRoot],
+  imports: [RouterOutlet, NzIconModule, NzLayoutModule, NzMenuModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
-  title = 'ChatApp.Client';
+  
 }

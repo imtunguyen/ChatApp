@@ -1,12 +1,17 @@
 ﻿
+using ChatApp.Application.Abstracts.Services;
 using ChatApp.Application.DTOs.Auth;
+using ChatApp.Application.DTOs.Email;
 using ChatApp.Application.Mappers;
-using ChatApp.Application.Services.Abstracts;
 using ChatApp.Domain.Entities;
+using ChatApp.Domain.Enums;
 using ChatApp.Domain.ValueObjects;
+using ChatApp.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using static ChatApp.Application.Abstracts.Services.Identity.Response;
 
 namespace ChatApp.Presentation.Controllers
 {
@@ -15,14 +20,16 @@ namespace ChatApp.Presentation.Controllers
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
         private readonly ITokenService _tokenService;
+        private readonly IEmailService _emailService;
         private readonly ICloudinaryService _cloudinaryService;
 
         public AuthController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager,
-            ITokenService tokenService, ICloudinaryService cloudinaryService)
+            ITokenService tokenService, IEmailService emailService, ICloudinaryService cloudinaryService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _tokenService = tokenService;
+            _emailService = emailService;
             _cloudinaryService = cloudinaryService;
         }
 
@@ -33,9 +40,11 @@ namespace ChatApp.Presentation.Controllers
             {
                 return BadRequest("Tên đăng nhập hoặc email không thể trống.");
             }
+
             EmailAddress email = null;
             Username username = null;
             var password = new Password(dto.Password);
+
             try
             {
                 email = new EmailAddress(dto.UserNameOrEmail);
@@ -47,8 +56,12 @@ namespace ChatApp.Presentation.Controllers
 
             var user = email != null
                 ? await _userManager.FindByEmailAsync(email.Value)
-                : await _userManager.FindByNameAsync(username.Value);
+                : await _userManager.FindByNameAsync(username?.Value);
 
+            if (user == null)
+            {
+                return Unauthorized("Người dùng không tồn tại.");
+            }
 
             var result = await _signInManager.CheckPasswordSignInAsync(user, password.Value, false);
 
@@ -57,20 +70,35 @@ namespace ChatApp.Presentation.Controllers
                 return Unauthorized("Mật khẩu không đúng");
             }
 
-            var userDto = UserMapper.EntityToUserDto(user);
-            userDto.Token = await _tokenService.CreateToken(user);
-            return Ok(userDto);
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+            };
+
+            var accessToken = _tokenService.GenerateToken(claims);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+
+            var res = new LoginRespone
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                RefreshTokenExpriedtime = DateTime.Now.AddDays(1),
+                User = UserMapper.EntityToUserDto(user)
+            };
+
+            return Ok(res);
+
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromForm] RegisterDto dto)
+        public async Task<IActionResult> RegisterAsync([FromForm] RegisterDto dto)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var userName = new Username(dto.UserName); 
+            var userName = new Username(dto.UserName);
             var email = new EmailAddress(dto.Email);
             var password = new Password(dto.Password);
 
@@ -85,34 +113,59 @@ namespace ChatApp.Presentation.Controllers
                 return BadRequest("Tên người dùng đã tồn tại");
             }
 
+            var avatarUrl = dto.ProfilePicture != null && dto.ProfilePicture.Length > 0
+                ? (await _cloudinaryService.UploadPhotoAsync(dto.ProfilePicture)).Url
+                : @"https://res.cloudinary.com/dlhwuvhhp/image/upload/v1734098200/user_rvnqoh.png";
+
             var user = new AppUser
             {
+                UserName = dto.UserName,
                 FullName = dto.FullName,
-                UserName = userName.Value,
-                Email = email.Value,
-                Gender = dto.Gender
+                Email = dto.Email,
+                Gender = Enum.Parse<GenderType>(dto.Gender, true),
+                ProfilePictureUrl = avatarUrl
             };
 
-            if (dto.ProfilePicture != null && dto.ProfilePicture.Length > 0)
+            var result = await _userManager.CreateAsync(user, dto.Password);
+            if (result.Succeeded)
             {
-                var uploadResult = await _cloudinaryService.UploadPhotoAsync(dto.ProfilePicture);
-                user.ProfilePictureUrl = uploadResult?.Url;
+                //var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                //var confirmationLink = Url.Action("ConfirmEmail", "Auth", new { userId = user.Id, token }, Request.Scheme);
+                //if (confirmationLink == null)
+                //{
+                //    return BadRequest("Confirmation link is null. Check if the action and controller exist.");
+                //}
+                //var emailRequest = new EmailRequest
+                //{
+                //    To = user.Email,
+                //    Subject = "Confirm your email",
+                //    Content = $"Please confirm your email by clicking <a href='{confirmationLink}'>here</a>"
+                //};
+                //await _emailService.SendMailAsync(CancellationToken.None, emailRequest);
+                //var resultAddRole = await _userManager.AddToRoleAsync(user, "User");
+                //if (resultAddRole.Succeeded)
+                //{
+                    return Ok();
+                //}
+
             }
-            else
+            return BadRequest(result.Errors);
+        }
+
+        [HttpGet("ConfirmEmail")]
+        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        {
+            var user = _userManager.FindByIdAsync(userId);
+            if (user is null)
             {
-                user.ProfilePictureUrl = "avatar.jpg";
+                return BadRequest("User not found");
             }
-
-
-            var result = await _userManager.CreateAsync(user, password.Value);
-            if (!result.Succeeded)
+            var result = await _userManager.ConfirmEmailAsync(user.Result, token);
+            if (result.Succeeded)
             {
-                return BadRequest(result.Errors);
+                return Ok("Email Confirmed successfully");
             }
-
-            var userDto = UserMapper.EntityToUserDto(user);
-            userDto.Token = await _tokenService.CreateToken(user);
-            return Ok(userDto);
+            return BadRequest("Email confirmation failed");
         }
 
         [HttpGet("GetUsers")]
@@ -121,6 +174,18 @@ namespace ChatApp.Presentation.Controllers
             var users = await _userManager.Users.ToListAsync();
             var userDtos = users.Select(UserMapper.EntityToUserDto);
             return Ok(userDtos);
+        }
+
+        [HttpGet("GetUserById")]
+        public async Task<IActionResult> GetUserById(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                return NotFound("Không tìm thấy người dùng");
+            }
+            var userDto = UserMapper.EntityToUserDto(user);
+            return Ok(userDto);
         }
 
 

@@ -1,49 +1,53 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, signal } from '@angular/core';
-import { environment } from '../../../environments/environment';
-import { Login, Register } from '../models/auth.module';
+import { inject, Injectable, signal } from '@angular/core';
 import { User } from '../models/user.module';
 import { Observable } from 'rxjs';
+import { Login } from '../models/auth.module';
+import { StorageService } from '../../shared/services/storage.service';
+import { ApiService } from '../../shared/services/api.service';
+import { LoginResponse } from '../models/login-response.dto';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = `${environment.apiUrl}/auth`;
   currentUser = signal<User | null>(null);
-  constructor(private http: HttpClient) { }
+  private storage = inject(StorageService);
+  private api = inject(ApiService);
+  constructor() { }
 
   // Lấy thông tin user
   getCurrentUser() {
-    const userJson = localStorage.getItem('user');
-    if (userJson) {
-      const user = JSON.parse(userJson);
-      this.currentUser.set(user);
+    const user = this.storage.getItem('user');
+    if (user) {
+      return user;
     }
   }
 
   getUsers() {
-    return this.http.get<User[]>(`${this.apiUrl}/GetUsers`);
+    return this.api.get<User[]>('auth/GetUsers');
   }
 
+  getUserById(id: string) {
+    return this.api.get<User>('auth/GetUserById?id=' + id);
+  }
   // Lưu thông tin user
   setCurrentUser(user: User) {
-    localStorage.setItem('user', JSON.stringify(user));
+    this.storage.setItem('user', user);
     this.currentUser.set(user);
   }
 
-  // Đăng nhập
-  login(login: Login): Observable<User> {
-    return this.http.post<User>(`${this.apiUrl}/login`, login);
+  login(login: Login): Observable<LoginResponse> {
+    return this.api.post<LoginResponse>('auth/login', login);
   }
   // Đăng ký
-  register(register: FormData) {
-    return this.http.post(`${this.apiUrl}/register`, register);
+  register(register: FormData){
+    return this.api.post('auth/register', register);
   }
 
   // Đăng xuất
   logout() {
-    localStorage.removeItem('user');
+    this.storage.removeItem('user');
     this.currentUser.set(null);
   }
 }

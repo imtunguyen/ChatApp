@@ -10,7 +10,7 @@
 
         // Navigation Properties
         public AppUser? User { get; set; }
-        public ChatRoom? ChatRoom { get; set; }
+        public Group? ChatRoom { get; set; }
         public Message? Message { get; set; }
     }
 }

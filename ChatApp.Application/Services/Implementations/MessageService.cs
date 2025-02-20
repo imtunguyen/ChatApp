@@ -7,6 +7,7 @@ using ChatApp.Application.Interfaces;
 using ChatApp.Application.Parameters;
 using ChatApp.Application.DTOs.Message;
 using ChatApp.Application.Services.Abstracts;
+using ChatApp.Application.Abstracts.Services;
 
 namespace ChatApp.Application.Services.Implementations
 {
@@ -46,12 +47,16 @@ namespace ChatApp.Application.Services.Implementations
 
         public async Task<MessageDto> UpdateMessageAsync(MessageUpdateDto messageUpdateDto)
         {
-            var message = MessageMapper.MessageUpdateDtoToEntity(messageUpdateDto);
-            message = await _unitOfWork.MessageRepository.GetAsync(m => m.Id == messageUpdateDto.Id);
+            
+            var message = await _unitOfWork.MessageRepository.GetAsync(m => m.Id == messageUpdateDto.Id);
             if (message == null)
             {
                 throw new NotFoundException("Không tìm thấy tin nhắn");
             }
+            message.Content = messageUpdateDto.Content;
+            message.UpdatedAt = DateTimeOffset.UtcNow;
+            message.Status = messageUpdateDto.Status;
+
             _unitOfWork.MessageRepository.Update(message);
             return await _unitOfWork.CompleteAsync()
                 ? MessageMapper.EntityToMessageDto(message)
@@ -84,9 +89,21 @@ namespace ChatApp.Application.Services.Implementations
             return new PagedList<MessageDto>(messages.Select(MessageMapper.EntityToMessageDto), messages.TotalCount, messages.CurrentPage, messages.PageSize);
         }
 
-        public  Task<MessageDto> GetLastMessageAsync(int messageId)
+        public async Task<MessageDto?> GetLastMessageAsync(string senderId, string recipientId)
         {
-            throw new NotImplementedException();
+            var message = await _unitOfWork.MessageRepository.GetLastMessageAsync(senderId, recipientId);
+            if (message == null) return null;
+            return MessageMapper.EntityToMessageDto(message);
+        }
+
+        public async Task<PagedList<MessageDto>> GetMessagesThreadAsync(MessageParams messageParams, string senderId, string recipientId)
+        {
+            var messages = await _unitOfWork.MessageRepository.GetMessagesThreadAsync(messageParams, senderId, recipientId);
+            if (messages == null)
+            {
+                throw new NotFoundException("Không tìm thấy tin nhắn");
+            }
+            return new PagedList<MessageDto>(messages.Select(MessageMapper.EntityToMessageDto), messages.TotalCount, messages.CurrentPage, messages.PageSize);
         }
 
         public async Task<MessageDto> GetMessageByIdAsync(int messageId)
@@ -99,11 +116,6 @@ namespace ChatApp.Application.Services.Implementations
             return MessageMapper.EntityToMessageDto(message);
         }
 
-        public Task<IEnumerable<MessageDto>> GetMessagesByUserAsync(string userId)
-        {
-            throw new NotImplementedException();
-        }
-
         public Task<int> GetUnreadMessagesCountAsync(string userId)
         {
             throw new NotImplementedException();
@@ -114,6 +126,14 @@ namespace ChatApp.Application.Services.Implementations
             throw new NotImplementedException();
         }
 
-
+        public async Task<PagedList<MessageDto>> GetMessagesChatRoomAsync(MessageParams messageParams, int chatRoomId)
+        {
+            var messages = await _unitOfWork.MessageRepository.GetMessagesChatRoomAsync(messageParams, chatRoomId);
+            if (messages == null)
+            {
+                throw new NotFoundException("Không tìm thấy tin nhắn");
+            }
+            return new PagedList<MessageDto>(messages.Select(MessageMapper.EntityToMessageDto), messages.TotalCount, messages.CurrentPage, messages.PageSize);
+        }
     }
 }

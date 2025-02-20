@@ -1,4 +1,5 @@
-﻿using ChatApp.Application.Services.Abstracts;
+﻿using ChatApp.Application.Abstracts.Services;
+using ChatApp.Infrastructure.Configuration;
 using ChatApp.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
@@ -10,8 +11,9 @@ namespace ChatApp.Infrastructure.Configurations
     {
         public static void AddAppConfig(this IServiceCollection services, IConfiguration configuration)
         {
-            services.Configure<CloudinarySettings>(configuration.GetSection("CloudinarySettings"));
+            services.Configure<CloudinaryConfig>(configuration.GetSection("CloudinarySettings"));
             services.Configure<EmailConfig>(configuration.GetSection("MailSettings"));
+            services.Configure<TokenConfig>(configuration.GetSection("TokenConfig"));
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<ICloudinaryService, CloudinaryService>();

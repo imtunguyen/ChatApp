@@ -26,13 +26,39 @@ namespace ChatApp.Presentation.Controllers
             Response.AddPaginationHeader(messages);
             return Ok(messages);
         }
-        [HttpPost("Add")]
-        public async Task<IActionResult> AddMessage([FromForm]MessageAddDto messageDto)
+        [HttpGet("GetMessagesThread")]
+        public async Task<ActionResult<IEnumerable<MessageDto>>> GetMessagesThread([FromQuery] MessageParams messageParams, string senderId, string recipientId)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            var messages = await _messageService.GetMessagesThreadAsync(messageParams, senderId, recipientId);
+            Response.AddPaginationHeader(messages);
+            return Ok(messages);
+        }
+        [HttpGet("GetMessagesChatRoom")]
+        public async Task<ActionResult<IEnumerable<MessageDto>>> GetMessagesChatRoom([FromQuery] MessageParams messageParams, int chatRoomId)
+        {
+            var messages = await _messageService.GetMessagesChatRoomAsync(messageParams, chatRoomId);
+            Response.AddPaginationHeader(messages);
+            return Ok(messages);
+        }
+        [HttpGet("GetLastMessage")]
+        public async Task<ActionResult<MessageDto?>> GetLastMessage(string senderId, string recipientId)
+        {
+            var message = await _messageService.GetLastMessageAsync(senderId, recipientId);
+            return Ok(message);
+        } 
+        [HttpPost("Add")]
+        public async Task<IActionResult> AddMessage([FromForm] MessageAddDto messageDto)
+        {
             var message = await _messageService.AddMessageAsync(messageDto);
             return CreatedAtAction(nameof(GetAllMessages), new { id = message.Id }, message);
         }
+
+        [HttpPut("Update")]
+        public async Task<IActionResult> UpdateMessage([FromForm] MessageUpdateDto messageDto)
+        {
+            var message = await _messageService.UpdateMessageAsync(messageDto);
+            return Ok(message);
+        }
+
     }
 }

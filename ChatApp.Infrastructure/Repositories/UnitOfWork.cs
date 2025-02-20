@@ -8,14 +8,16 @@ namespace ChatApp.Infrastructure.Repositories
     {
         private readonly ChatAppContext _context;
         public IMessageRepository MessageRepository { get; private set; }
-        public IChatRoomRepository ChatRoomRepository { get; private set; }
-        public IUserChatRoomRepository UserChatRoomRepository { get; private set; }
+        public IGroupRepository GroupRepository { get; private set; }
+        public IUserGroupRepository UserGroupRepository { get; private set; }
+        public IFriendShipRepository FriendShipRepository { get; private set; }
         public UnitOfWork(ChatAppContext context) 
         {
             _context = context;
             MessageRepository = new MessageRepository(_context);
-            ChatRoomRepository = new ChatRoomRepository(_context);
-            UserChatRoomRepository = new UserChatRoomRepository(_context);
+            GroupRepository = new GroupRepository(_context);
+            UserGroupRepository = new UserGroupRepository(_context);
+            FriendShipRepository = new FriendShipRepository(_context);
         }
         public async Task<bool> CompleteAsync()
         {

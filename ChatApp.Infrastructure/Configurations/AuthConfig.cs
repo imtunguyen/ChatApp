@@ -1,9 +1,12 @@
 ﻿using ChatApp.Domain.Entities;
+using ChatApp.Infrastructure.Configuration;
 using ChatApp.Infrastructure.DataAccess;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using System.Linq;
 using System.Text;
 
 namespace ChatApp.Infrastructure.Configurations
@@ -18,17 +21,51 @@ namespace ChatApp.Infrastructure.Configurations
                 .AddEntityFrameworkStores<ChatAppContext>();
 
             // JWT Authentication setup
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
+            services
+                .AddAuthentication(options =>
                 {
-                    options.TokenValidationParameters = new TokenValidationParameters
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, o =>
+                {
+                    TokenConfig token = new TokenConfig();
+                    configuration.GetSection(nameof(TokenConfig)).Bind(token);
+                    var key = Encoding.UTF8.GetBytes(token.SecretKey);
+                    
+                    o.SaveToken = true;
+                    o.TokenValidationParameters = new TokenValidationParameters
                     {
+                        ValidateAudience = false, // on production is true
+                        ValidateIssuer = false, // on production is true
+                        ValidateLifetime = true,
                         ValidateIssuerSigningKey = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Token:Key"]!)),
-                        ValidIssuer = configuration["Token:Issuer"],
-                        ValidAudience = configuration["Token:Audience"],
-                        ValidateIssuer = true,
-                        ValidateAudience = false
+                        ValidIssuer = token.Issuer,
+                        ValidAudience = token.Audience,
+                        IssuerSigningKey = new SymmetricSecurityKey(key),
+                        ClockSkew = TimeSpan.Zero,
+                    };
+                    o.Events = new JwtBearerEvents
+                    {
+                        OnAuthenticationFailed = context =>
+                        {
+                            if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
+                            {
+                                context.Response.Headers.Append("IS-TOKEN-EXPRIED", "true");
+                            }
+                            return Task.CompletedTask;
+                        },
+                        OnMessageReceived = context =>
+                        {
+                            var accessToken = context.Request.Query["access_token"];
+                            var path = context.HttpContext.Request.Path;
+                            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chat"))
+                            {
+                                context.Token = accessToken;
+                            }
+                            return Task.CompletedTask;
+                        }
                     };
                 });
         }

@@ -1,0 +1,170 @@
+.chat-list {
+  border-right: 1px solid #e6e6e6;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+
+  .chat-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e6e6e6;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+    .search-input {
+      width: 100%;
+    }
+
+    .action-button {
+      margin-left: 10px;
+      border: none;
+      background-color: transparent;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background-color: #f0f0f0;
+        transform: scale(1.1);
+      }
+
+      nz-icon {
+        font-size: 18px;
+        color: #555;
+      }
+    }
+  }
+
+  .chat-list-items {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 0;
+    margin: 0;
+
+    .chat-user-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      border: none;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background-color: #ffffff;
+
+      &:hover {
+        background-color: #f8f9fa;
+        transform: translateX(5px);
+      }
+
+      &:active {
+        background-color: #e9ecef;
+        transform: scale(0.98);
+      }
+
+      .user-avatar {
+        border: 2px solid #007bff;
+        transition: transform 0.3s ease;
+
+        &:hover {
+          transform: scale(1.1);
+        }
+      }
+
+      .user-info {
+        margin-left: 15px;
+
+        .user-name {
+          font-size: 16px;
+          font-weight: 600;
+          color: #333;
+          transition: color 0.3s ease;
+        }
+
+        .last-message {
+          color: #777;
+          font-size: 14px;
+        }
+      }
+    }
+  }
+}
+
+::ng-deep .ant-modal {
+  .users {
+    h4 {
+      font-size: 1.25rem;
+      font-weight: 500;
+      margin-bottom: 1rem;
+      color: #34495e;
+    }
+
+    .user-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.75rem;
+      border-radius: 12px;
+      background-color: #f9f9f9;
+      box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+
+      &:hover {
+        background-color: #f0f8ff;
+        box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
+      }
+
+      .user-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 1rem;
+        border: 2px solid #bdc3c7;
+        transition: transform 0.3s ease;
+
+        &:hover {
+          transform: scale(1.1);
+          border-color: #3498db;
+        }
+      }
+
+      .user-name {
+        font-size: 1rem;
+        font-weight: 500;
+        color: #2c3e50;
+        margin-right: auto;
+      }
+
+      .add-btn {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+        background-color: #3498db;
+        border: none;
+        color: #fff;
+        border-radius: 8px;
+        box-shadow: 0px 2px 6px rgba(52, 152, 219, 0.2);
+        transition: background-color 0.3s ease, box-shadow 0.3s ease;
+
+        &:hover {
+          background-color: #2980b9;
+          box-shadow: 0px 4px 8px rgba(52, 152, 219, 0.3);
+        }
+
+        &:active {
+          background-color: #1f618d;
+        }
+      }
+
+      .remove-icon {
+        font-size: 1.2rem;
+        color: #e74c3c;
+        margin-left: 1rem;
+        cursor: pointer;
+        transition: transform 0.3s ease, color 0.3s ease;
+
+        &:hover {
+          color: #c0392b;
+          transform: rotate(20deg);
+        }
+      }
+    }
+  }
+}

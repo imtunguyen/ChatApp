@@ -5,10 +5,10 @@ namespace ChatApp.Domain.Entities
 {
     public class Message : BaseEntity
     {
-        public required string SenderId { get; set; }     
+        public string SenderId { get; set; }     
         public string? RecipientId { get; set; }
-        public int? ChatRoomId { get; set; }
-        public required string Content { get; set; }
+        public int? GroupId { get; set; }
+        
         public MessageType Type { get; set; }
         public MessageStatus Status { get; set; }
         public DateTimeOffset SentAt { get; set; }
@@ -17,8 +17,10 @@ namespace ChatApp.Domain.Entities
         public bool IsRead { get; set; }      
         public bool IsDeleted { get; set; } = false;
 
+        public string? Content { get; set; }
+
         public AppUser? Sender { get; set; }
-        public ChatRoom? ChatRoom { get; set; }
+        public Group? Group { get; set; }
         public ICollection<MessageFile> Files { get; set; } = new List<MessageFile>();
 
         public void MarkAsRead()
