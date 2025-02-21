@@ -60,6 +60,7 @@ export class ChatListComponent {
 
   showAddFriendModal() {
     this.isVisible = true;
+    this.loadFriendShipStatus();
   }
 
   handleOk(): void {

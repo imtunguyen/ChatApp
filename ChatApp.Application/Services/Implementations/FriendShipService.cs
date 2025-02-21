@@ -45,6 +45,11 @@ namespace ChatApp.Application.Services.Implementations
                 : throw new BadRequestException("Lỗi khi thêm friendship");
         }
 
+        public async Task<List<FriendShipDto>> GetFriends(string userId)
+        {
+            var friendShips = await _unitOfWork.FriendShipRepository.GetFriends(userId);
+            return friendShips.Select(FriendShipMapper.FriendShipToDto).ToList();
+        }
 
         public async Task<FriendShipDto> GetFriendShip(string requesterId, string addresseeId)
         {
@@ -56,6 +61,12 @@ namespace ChatApp.Application.Services.Implementations
         {
             var friendShips = await _unitOfWork.FriendShipRepository.GetFriendShips(userId, status);
             return friendShips.Select(FriendShipMapper.FriendShipToDto);
+        }
+
+        public async Task<List<FriendShipDto>> GetPendingRequest(string userId)
+        {
+            return await _unitOfWork.FriendShipRepository.GetPendingRequest(userId)
+                .ContinueWith(task => task.Result.Select(FriendShipMapper.FriendShipToDto).ToList());
         }
 
         public async Task<FriendShipDto> UpdateFriendShip(FriendShipUpdateDto friendShipUpdateDto)

@@ -14,6 +14,14 @@ namespace ChatApp.Infrastructure.Repositories
             _context = context;
         }
 
+        public async Task<List<FriendShip>> GetFriends(string userId)
+        {
+            return await _context.FriendShips
+                .Where(f => (f.RequesterId == userId || f.AddresseeId == userId) 
+                && f.Status == FriendShipStatus.Accepted)
+                .ToListAsync();
+        }
+
         public async Task<FriendShip> GetFriendShip(string requesterId, string addresseeId)
         {
             return await _context.FriendShips.FirstOrDefaultAsync(f => (f.RequesterId == requesterId && f.AddresseeId == addresseeId) || (f.RequesterId == addresseeId && f.AddresseeId == requesterId));
@@ -23,7 +31,8 @@ namespace ChatApp.Infrastructure.Repositories
         public async Task<int> GetFriendShipId(string requesterId, string addresseeId)
         {
             var friendShip = await _context.FriendShips
-                .Where(f => f.RequesterId == requesterId && f.AddresseeId == addresseeId)
+                .Where(f => (f.RequesterId == requesterId && f.AddresseeId == addresseeId) ||
+                            (f.RequesterId == addresseeId && f.AddresseeId == requesterId))
                 .Select(f => f.Id)
                 .FirstOrDefaultAsync();
 
@@ -44,13 +53,34 @@ namespace ChatApp.Infrastructure.Repositories
             return await query.ToListAsync();
         }
 
+        public async Task<List<FriendShip>> GetPendingRequest(string userId)
+        {
+            return await _context.FriendShips
+                .Where(f => f.AddresseeId == userId && f.Status == FriendShipStatus.Pending)
+                .ToListAsync();
+        }
+
         public void UpdateFriendShip(FriendShip friendShip)
         {
             var friendShipEntity = _context.FriendShips.FirstOrDefault(f => f.Id == friendShip.Id);
 
             if (friendShipEntity != null)
             {
-                friendShipEntity.Status = friendShip.Status;
+                if (friendShip.Status == FriendShipStatus.Accepted)
+                {
+                    friendShipEntity.AcceptedAt = DateTimeOffset.Now;
+                    friendShipEntity.Status = FriendShipStatus.Accepted;
+                }
+                else if (friendShip.Status == FriendShipStatus.None && friendShipEntity.Status == FriendShipStatus.Accepted)
+                {
+                    friendShipEntity.Status = FriendShipStatus.None;
+                }
+                else
+                {
+                    
+                    friendShipEntity.Status = friendShip.Status;
+                }
+
             }
 
         }

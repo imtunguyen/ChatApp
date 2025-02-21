@@ -9,5 +9,7 @@ namespace ChatApp.Application.Interfaces
         Task<FriendShip> GetFriendShip(string requesterId, string addresseeId);
         Task<IEnumerable<FriendShip>> GetFriendShips(string userId, FriendShipStatus? status = null);
         Task<int> GetFriendShipId(string requesterId, string addresseeId);
+        Task<List<FriendShip>> GetPendingRequest(string userId);
+        Task<List<FriendShip>> GetFriends(string userId);
     }
 }

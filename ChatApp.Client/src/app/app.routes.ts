@@ -5,6 +5,7 @@ export const routes: Routes = [
 
   { path: '', component: SidebarNavComponent, children: [
     { path: 'chat', loadChildren: () => import('./features/chat/chat.module').then(m => m.ChatModule) },
+    { path: 'friendship', loadChildren: () => import('./features/friendship/friendship.module').then(m => m.FriendShipModule) },
 
   ]},
   { path: '', loadChildren: () => import('./features/auth/auth.module').then(m => m.AuthModule) },

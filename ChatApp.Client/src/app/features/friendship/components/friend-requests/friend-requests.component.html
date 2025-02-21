@@ -1,0 +1,15 @@
+<div class="friend-requests">
+    <h3>Lời mời kết bạn</h3>
+    <ul *ngIf="friendRequests.length > 0; else noRequests">
+      <li *ngFor="let request of friendRequests">
+        <img [src]="requestUser.profilePictureUrl" class="rounded-circle user-avatar me-2" alt="Avatar" />
+        <span>{{ requestUser.fullName }}</span>
+        <button (click)="acceptRequest(requestUser.id)" class="btn btn-success">Chấp nhận</button>
+        <button (click)="rejectRequest(requestUser.id)" class="btn btn-danger">Từ chối</button>
+      </li>
+    </ul>
+    <ng-template #noRequests>
+      <p>Không có lời mời kết bạn nào.</p>
+    </ng-template>
+  </div>
+  

@@ -1,0 +1,8 @@
+<p>Bạn bè</p>
+<ul>
+    <li *ngFor="let friend of friendsList">
+        <img [src]="friend.profilePictureUrl" class="rounded-circle user-avatar me-2" alt="Avatar" />
+        <span>{{ friend.fullName }}</span>
+        <button (click)="removeFriend(friend.id)" class="btn btn-danger">Xóa bạn</button>
+    </li>
+</ul>

@@ -9,5 +9,7 @@ namespace ChatApp.Application.Services.Abstracts
         Task<FriendShipDto> UpdateFriendShip(FriendShipUpdateDto friendShipUpdateDto);
         Task<FriendShipDto> GetFriendShip(string requesterId, string addresseeId);
         Task<IEnumerable<FriendShipDto>> GetFriendShips(string userId, FriendShipStatus? status = null);
+        Task<List<FriendShipDto>> GetPendingRequest(string userId);
+        Task<List<FriendShipDto>> GetFriends(string userId);
     }
 }

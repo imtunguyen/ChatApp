@@ -40,5 +40,19 @@ namespace ChatApp.Presentation.Controllers
             var friendShip = await _friendShipService.UpdateFriendShip(friendShipUpdateDto);
             return Ok(friendShip);
         }
+
+        [HttpGet("pending-requests/{userId}")]
+        public async Task<ActionResult<List<FriendShipDto>>> GetPendingRequest(string userId)
+        {
+            var friendShips = await _friendShipService.GetPendingRequest(userId);
+            return Ok(friendShips);
+        }
+
+        [HttpGet("friends/{userId}")]
+        public async Task<ActionResult<List<FriendShipDto>>> GetFriends(string userId)
+        {
+            var friendShips = await _friendShipService.GetFriends(userId);
+            return Ok(friendShips);
+        }
     }
 }

@@ -35,4 +35,12 @@ export class FriendShipService {
   getFriendShipsByUser(userId: string, status: number){
     return this.api.get<FriendShip[]>(`friendship/getByUser?userId=${userId}&status=${status}`);
   }
+
+  getPendingRequests(userId: string){
+    return this.api.get<FriendShip[]>(`friendship/pending-requests/${userId}`);
+  }
+
+  getFriends(userId: string){
+    return this.api.get<FriendShip[]>(`friendship/friends/${userId}`);
+  }
 }

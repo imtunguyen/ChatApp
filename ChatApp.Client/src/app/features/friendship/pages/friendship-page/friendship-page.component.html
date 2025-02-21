@@ -1,0 +1,25 @@
+<div class="d-flex">
+    <div class="col-4" style="height: 80vh;">
+        
+      <ol>
+        <li nz-menu-item nzSelected (click)="selectTab('friends')" [ngClass]="{'active': selectedTab === 'friends'}">
+            <nz-icon nzType="user" nzTheme="outline" />
+            Danh sách bạn bè
+        </li>
+        <li nz-menu-item (click)="selectTab('groups')" [ngClass]="{'active': selectedTab === 'groups'}">
+            <nz-icon nzType="team" nzTheme="outline" />
+            Danh sách nhóm
+        </li>
+        <li nz-menu-item (click)="selectTab('requests')" [ngClass]="{'active': selectedTab === 'requests'}">
+            <nz-icon nzType="user-add" nzTheme="outline" />
+            Lời mời kết bạn
+        </li>
+        
+      </ol>
+    </div>
+    <div class="col-8">
+        <app-friends-list *ngIf="selectedTab === 'friends'"></app-friends-list>
+        <app-groups-list *ngIf="selectedTab === 'groups'"></app-groups-list>
+        <app-friend-requests *ngIf="selectedTab === 'requests'"></app-friend-requests>
+    </div>
+</div>
