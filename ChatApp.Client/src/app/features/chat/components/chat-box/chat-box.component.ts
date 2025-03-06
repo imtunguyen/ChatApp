@@ -14,7 +14,6 @@ import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { Router } from '@angular/router';
 import { VideoCallComponent } from "../video-call/video-call.component";
 import { SignalRService } from '../../../../core/services/signalr.service';
-import { ChatService } from '../../../../core/services/chat.service';
 @Component({
   selector: 'app-chat-box',
   imports: [CommonModule, NzAvatarComponent, NzIconModule, FormsModule, NzSpinModule, VideoCallComponent],
@@ -40,6 +39,7 @@ export class ChatBoxComponent implements OnInit, OnChanges{
 
 
   //message
+  
   messages: Message[] = [];
   messageParams = new MessageParams();
   pagination: Pagination = { currentPage: 1, itemsPerPage: 5, totalItems: 0, totalPages: 0 };
@@ -51,7 +51,7 @@ export class ChatBoxComponent implements OnInit, OnChanges{
 
   private messageService = inject(MessageService);
   private authService = inject(AuthService);
-  private chatService = inject(ChatService);
+  private signalRService = inject(SignalRService);
 
   constructor(private router: Router) {
     this.currentUser = this.authService.getCurrentUser();
@@ -68,6 +68,14 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     }
   }
   ngOnInit(): void {
+    this.signalRService.newMessage$.subscribe({
+      next: (res) => {
+        if (res) {
+          this.messages.push(res.message);
+          this.scrollToBottom();
+        }
+      }
+    });
   }
   resetValues(): void {
     this.messages = [];
@@ -130,7 +138,8 @@ export class ChatBoxComponent implements OnInit, OnChanges{
             this.messageService.addMessage(formData).subscribe({
               next: (response) => {
                 this.messages.push(response as Message);
-                this.chatService.sendMessage(this.newMessage, this.selectedUser.id );
+                this.signalRService.sendMessage((response as Message).content, this.selectedUser.id);
+
                 this.scrollToBottom();
                 this.resetMessageInput();
 
@@ -145,7 +154,7 @@ export class ChatBoxComponent implements OnInit, OnChanges{
         this.messageService.addMessage(formData).subscribe({
           next: (response) => {
             this.messages.push(response as Message);
-            this.chatService.sendMessage(this.newMessage, this.selectedUser.id );
+            this.signalRService.sendMessage((response as Message).content, this.selectedUser.id);
 
             this.scrollToBottom();
             this.resetMessageInput();

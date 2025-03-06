@@ -76,12 +76,7 @@ export class ChatListComponent {
       this.cdr.detectChanges();
     });
 
-    this.signalR.newMessage$.subscribe((userId) => {
-      this.newMessageFrom = userId;
-      setTimeout(() => {
-        this.newMessageFrom = null;
-      }, 5000);
-    });
+
     this.authService.getOnlineUsers();
   }
   ngOnDestroy(): void {

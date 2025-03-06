@@ -9,7 +9,7 @@ import { BehaviorSubject } from 'rxjs';
 export class SignalRService {
   private hubConnection!: signalR.HubConnection;
   public onlineUsers$ = new BehaviorSubject<string[]>([]);
-  public newMessage$ = new BehaviorSubject<string | null>(null);
+  public newMessage$ = new BehaviorSubject<{ message : Message } | null>(null);
   private chatUrl = environment.chatUrl;
 
   constructor() { 
@@ -50,10 +50,12 @@ export class SignalRService {
       }
     });
     
-
-    this.hubConnection.on('NewMessageNotification', (userId: string) => {
-      this.newMessage$.next(userId);
+    this.hubConnection.on('ReceiveMessage', (message: Message) => {
+      console.log('ReceiveMessage:', message);
+      this.newMessage$.next({ message });
     });
+
+   
   }
 
   private updateOnlineUsers(userId: string, isOnline: boolean) {
@@ -75,6 +77,36 @@ export class SignalRService {
       }
     }, 2000); 
   }
+
+  sendMessage(message: string, userId?: string, groupId?: string){
+    if (this.hubConnection.state !== signalR.HubConnectionState.Connected) {
+      console.error("❌ SignalR chưa kết nối, không thể gửi tin nhắn.");
+      return;
+    }
+
+    if (userId) {
+      this.hubConnection.invoke('SendPrivateMessage', userId, message)
+        .catch(err => console.error("❌ Gửi tin nhắn riêng thất bại:", err));
+    } else if (groupId) {
+      this.hubConnection.invoke('SendGroupMessage', groupId, message)
+        .catch(err => console.error("❌ Gửi tin nhắn nhóm thất bại:", err));
+    } else {
+      console.error("❌ Cần cung cấp userId hoặc groupId để gửi tin nhắn.");
+    }
+  }
+
+  joinGroup(groupId: string) {
+    this.hubConnection.invoke('JoinChatRoom', groupId)
+      .then(() => console.log(`📌 Đã tham gia nhóm ${groupId}`))
+      .catch(err => console.error("❌ Lỗi tham gia nhóm:", err));
+  }
+
+  leaveGroup(groupId: string) {
+    this.hubConnection.invoke('LeaveChatRoom', groupId)
+      .then(() => console.log(`🚪 Rời nhóm ${groupId}`))
+      .catch(err => console.error("❌ Lỗi rời nhóm:", err));
+  }
+  
   
 
   stopConnection() {
