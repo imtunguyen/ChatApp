@@ -12,10 +12,8 @@
         </div>
   
         <div>
-          <button nz-button nzType="default" nzShape="circle" >
-            <i nz-icon nzType="team"></i>
-          </button>
-          <button nz-button nzType="default" nzShape="circle">
+          
+          <button nz-button nzType="default" nzShape="circle" (click)="toggleVideoCall()">
             <i nz-icon nzType="video-camera"></i>
           </button>
           <button nz-button nzType="default" nzShape="circle">
@@ -28,7 +26,7 @@
       </div>
   
       <!-- Chat Messages -->
-      <div class="chat-messages flex-grow-1 p-3 overflow-auto">
+      <div class="chat-messages flex-grow-1 p-3 overflow-auto" #messageContainer (scroll)="onScroll()">
         <div *ngIf="messages.length === 0" class="text-center text-muted">
           <nz-icon nzType="message" nzTheme="outline" style="font-size: 24px;"></nz-icon>
           <p>No messages yet</p>
@@ -141,5 +139,5 @@
       </ul>
     </div>
   </div>
-  
+  <app-video-call *ngIf="isVideoCallVisible"></app-video-call>
   <!-- <app-add-group></app-add-group> -->

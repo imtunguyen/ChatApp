@@ -35,7 +35,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseStaticFiles();
@@ -44,5 +44,6 @@ app.UseDefaultFiles();
 app.MapControllers();
 
 app.MapHub<ChatHub>("/chat");
+app.MapHub<WebRTCHub>("/webrtc");
 app.Map("/", () => Results.Redirect("/swagger"));
 app.Run();

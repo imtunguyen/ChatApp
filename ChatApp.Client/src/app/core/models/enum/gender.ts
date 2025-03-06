@@ -8,7 +8,7 @@ export const GENDER_LIST = [
     display: 'Nữ',
   },
   {
-    value: 'Orther',
+    value: 'Other',
     display: 'Khác',
   },
 ];

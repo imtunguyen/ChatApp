@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { Component, ElementRef, inject, Input, OnChanges, OnInit, SimpleChanges, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NzAvatarComponent } from 'ng-zorro-antd/avatar';
 import { NzIconModule } from 'ng-zorro-antd/icon';
@@ -11,9 +11,13 @@ import { User } from '../../../../core/models/user.module';
 import { MessageService } from '../../../../core/services/message.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { Router } from '@angular/router';
+import { VideoCallComponent } from "../video-call/video-call.component";
+import { SignalRService } from '../../../../core/services/signalr.service';
+import { ChatService } from '../../../../core/services/chat.service';
 @Component({
   selector: 'app-chat-box',
-  imports: [CommonModule, NzAvatarComponent, NzIconModule, FormsModule, NzSpinModule ],
+  imports: [CommonModule, NzAvatarComponent, NzIconModule, FormsModule, NzSpinModule, VideoCallComponent],
   templateUrl: './chat-box.component.html',
   styleUrl: './chat-box.component.scss'
 })
@@ -25,6 +29,8 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   currentUser: any;
   avatars: { [key: string]: string } = {};
   isVisible: boolean = true;
+  isVideoCallVisible: boolean = false;
+  loading: boolean = false;
 
   //record
   isRecording: boolean = false;
@@ -41,16 +47,20 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   MessageType: typeof MessageType = MessageType;
   selectedFiles: { src: string; file: File}[] = [];
 
+  @ViewChild('messageContainer') messageContainer!: ElementRef;
+
   private messageService = inject(MessageService);
   private authService = inject(AuthService);
+  private chatService = inject(ChatService);
 
-  constructor() {
+  constructor(private router: Router) {
     this.currentUser = this.authService.getCurrentUser();
   }
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['selectedUser'] && changes['selectedUser'].currentValue) {
       this.resetValues();
       this.getMessagesThread();
+      this.scrollToBottom();
       console.log("day la selectUser", this.selectedUser)
     } else if (changes['selectedChatRoom'] && changes['selectedChatRoom'].currentValue) {
       this.resetValues();
@@ -65,17 +75,41 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     this.avatars = {};
   }
 
+  onScroll(){
+    const element = this.messageContainer.nativeElement;
+    const previousHeight = element.scrollHeight;
+
+    if(element.scrollTop === 0 && !this.loading){
+      if(this.pagination.currentPage < this.pagination.totalPages){
+        this.messageParams.pageNumber++;
+        this.getMessagesThread();
+        setTimeout(() => {
+          const currentHeight = element.scrollHeight;
+          element.scrollTop = currentHeight - previousHeight;
+        }, 100);
+      }
+    }
+  }
+
+  scrollToBottom(): void {
+    const element = this.messageContainer.nativeElement;
+    setTimeout(() => {
+      element.scrollTop = element.scrollHeight;
+    }, 100);
+  }
+
   toggleChatDetail(){
     this.isVisible = !this.isVisible;
   }
 
+  toggleVideoCall(){
+    this.isVideoCallVisible = !this.isVideoCallVisible;
+  }
     
-
-  
 
 
   sendMessage() {
-    if (this.newMessage.trim() || this.audioUrl) {
+    if (this.newMessage.trim() || this.audioUrl || this.selectedFiles.length > 0) {
       const formData = new FormData();
       formData.append('content', this.newMessage);
       formData.append('recipientId', this.selectedUser.id);
@@ -91,12 +125,15 @@ export class ChatBoxComponent implements OnInit, OnChanges{
         fetch(this.audioUrl)
           .then(res => res.blob())
           .then(blob => {
-            formData.append('audio', blob, 'recording.wav');
+            formData.append('files', blob, 'recording.wav');
   
             this.messageService.addMessage(formData).subscribe({
               next: (response) => {
                 this.messages.push(response as Message);
+                this.chatService.sendMessage(this.newMessage, this.selectedUser.id );
+                this.scrollToBottom();
                 this.resetMessageInput();
+
               },
               error: (error) => {
                 console.log(error);
@@ -108,6 +145,9 @@ export class ChatBoxComponent implements OnInit, OnChanges{
         this.messageService.addMessage(formData).subscribe({
           next: (response) => {
             this.messages.push(response as Message);
+            this.chatService.sendMessage(this.newMessage, this.selectedUser.id );
+
+            this.scrollToBottom();
             this.resetMessageInput();
           },
           error: (error) => {
@@ -121,11 +161,14 @@ export class ChatBoxComponent implements OnInit, OnChanges{
 
 
   getMessagesThread(){
+    if(this.loading) return;
+    this.loading = true;
     this.messageService.getMessagesThread(this.messageParams, this.currentUser.id, this.selectedUser.id).subscribe({
       next: (response) => {
         this.messages = response.result as Message[];
         this.pagination = response.pagination as Pagination;
         console.log(this.messages)
+        this.loading = false;
       },
       error: (error) => {
         console.log(error);

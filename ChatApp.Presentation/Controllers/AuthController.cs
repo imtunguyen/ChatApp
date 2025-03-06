@@ -2,6 +2,7 @@
 using ChatApp.Application.Abstracts.Services;
 using ChatApp.Application.DTOs.Auth;
 using ChatApp.Application.DTOs.Email;
+using ChatApp.Application.DTOs.User;
 using ChatApp.Application.Mappers;
 using ChatApp.Domain.Entities;
 using ChatApp.Domain.Enums;
@@ -187,6 +188,67 @@ namespace ChatApp.Presentation.Controllers
             var userDto = UserMapper.EntityToUserDto(user);
             return Ok(userDto);
         }
+
+        [HttpPut("UpdateUser")]
+        public async Task<IActionResult> UpdateUser([FromForm] UserUpdateDto user)
+        {
+            if (string.IsNullOrEmpty(user.Id))
+            {
+                return BadRequest("ID người dùng không hợp lệ.");
+            }
+
+            var userEntity = await _userManager.FindByIdAsync(user.Id);
+            if (userEntity == null)
+            {
+                return NotFound("Không tìm thấy người dùng.");
+            }
+
+            // Kiểm tra và cập nhật ảnh đại diện nếu có
+            if (user.ProfilePicture != null)
+            {
+                try
+                {
+                    userEntity.ProfilePictureUrl = (await _cloudinaryService.UploadPhotoAsync(user.ProfilePicture)).Url;
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, $"Lỗi khi tải ảnh lên: {ex.Message}");
+                }
+            }
+
+            userEntity.FullName = user.FullName;
+
+            if (!string.IsNullOrEmpty(user.Email) && !user.Email.Equals(userEntity.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                var emailExists = await _userManager.Users.AnyAsync(u => u.Email.ToLower() == user.Email.ToLower() && u.Id != userEntity.Id);
+                if (emailExists)
+                {
+                    return BadRequest("Email đã tồn tại.");
+                }
+                userEntity.Email = user.Email;
+            }
+
+
+            // Kiểm tra và chuyển đổi giới tính một cách an toàn
+            if (Enum.TryParse(user.Gender, true, out GenderType gender))
+            {
+                userEntity.Gender = gender;
+            }
+            else
+            {
+                return BadRequest("Giới tính không hợp lệ.");
+            }
+
+            var result = await _userManager.UpdateAsync(userEntity);
+            if (!result.Succeeded)
+            {
+                return BadRequest("Cập nhật thất bại.");
+            }
+
+            var userDto = UserMapper.EntityToUserDto(userEntity);
+            return Ok(userDto);
+        }
+
 
 
         private async Task<(bool, bool)> CheckEmailAndUserNameExistAsync(string email, string userName)

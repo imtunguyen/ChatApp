@@ -11,6 +11,6 @@ namespace ChatApp.Application.Abstracts.Services
         Task SetUserOnline(string userId);
         Task SetUserOffline(string userId);
         Task<bool> IsUserOnline(string userId);
-        Task<int> GetOnlineUsersCount();
+        Task<List<string>> GetOnlineUsers();
     }
 }

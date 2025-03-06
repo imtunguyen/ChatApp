@@ -1,14 +1,14 @@
 ﻿
+using Microsoft.AspNetCore.Http;
+
 namespace ChatApp.Application.DTOs.User
 {
-    public class UserDto
+    public class UserUpdateDto
     {
         public string? Id { get; set; }
         public string? FullName { get; set; }
-        public string? UserName { get; set; }
         public string? Email { get; set; }
-        public string? ProfilePictureUrl { get; set; }
+        public IFormFile? ProfilePicture { get; set; }
         public string? Gender { get; set; }
-        public string? Token { get; set; }
     }
 }

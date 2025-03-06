@@ -37,8 +37,8 @@ namespace ChatApp.Infrastructure.Configurations
                     o.SaveToken = true;
                     o.TokenValidationParameters = new TokenValidationParameters
                     {
-                        ValidateAudience = false, // on production is true
-                        ValidateIssuer = false, // on production is true
+                        ValidateAudience = true,
+                        ValidateIssuer = true, 
                         ValidateLifetime = true,
                         ValidateIssuerSigningKey = true,
                         ValidIssuer = token.Issuer,
@@ -59,6 +59,8 @@ namespace ChatApp.Infrastructure.Configurations
                         OnMessageReceived = context =>
                         {
                             var accessToken = context.Request.Query["access_token"];
+                            Console.WriteLine($"🔵 Debug: Token từ Query String = {accessToken}");
+
                             var path = context.HttpContext.Request.Path;
                             if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chat"))
                             {

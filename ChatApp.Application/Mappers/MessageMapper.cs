@@ -73,6 +73,10 @@ namespace ChatApp.Application.Mappers
                 {
                     return MessageType.Video;
                 }
+                if (file.ContentType.Contains("audio"))
+                {
+                    return MessageType.Audio;
+                }
                 if (file.ContentType.Contains("application"))
                 {
                     return MessageType.File;

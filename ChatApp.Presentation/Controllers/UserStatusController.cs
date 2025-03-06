@@ -32,11 +32,18 @@ namespace ChatApp.Presentation.Controllers
             return Ok(isOnline);
         }
 
-        [HttpGet("online-users-count")]
-        public async Task<IActionResult> GetOnlineUsersCount()
-        {
-            var count = await _userStatus.GetOnlineUsersCount();
-            return Ok(count);
+       
+
+        [HttpPost("users-online-status")]
+        public async Task<IActionResult> GetUsersOnlineStatus([FromBody] List<string> userIds)
+       {
+            var result = new Dictionary<string, bool>();
+            foreach (var userId in userIds)
+            {
+                var isOnline = await _userStatus.IsUserOnline(userId);
+                result[userId] = isOnline;
+            }
+            return Ok(result);
         }
     }
 }

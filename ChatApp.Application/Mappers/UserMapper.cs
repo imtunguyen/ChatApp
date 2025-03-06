@@ -14,6 +14,7 @@ namespace ChatApp.Application.Mappers
                 FullName = user.FullName,
                 UserName = user.UserName, 
                 Email = user.Email,  
+                Gender = user.Gender.ToString(),
                 ProfilePictureUrl = user.ProfilePictureUrl, 
             };
         }

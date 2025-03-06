@@ -23,14 +23,11 @@ export class MessageService {
 
   getMessagesThread(messageParams: MessageParams, senderId: string, recipientId: string) {
     let params = new HttpParams()
-      params.append('pageNumber', messageParams.pageNumber.toString());
-      params.append('pageSize', messageParams.pageSize.toString())
-      params.append('orderBy', messageParams.orderBy);
-
-    if (messageParams.search) {
-      params = params.append('search', messageParams.search);
-    }
-
+    if(messageParams.pageNumber) params.append('pageNumber', messageParams.pageNumber.toString());
+    if(messageParams.pageSize) params.append('pageSize', messageParams.pageSize.toString())
+    if(messageParams.orderBy) params.append('orderBy', messageParams.orderBy);
+    if (messageParams.search) params = params.append('search', messageParams.search);
+    
     return this.http.get<PaginationResult<Message[]>>(
       `${this.apiUrl}/GetMessagesThread?senderId=${senderId}&recipientId=${recipientId}`,
       { observe: 'response', params }

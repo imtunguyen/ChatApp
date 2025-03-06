@@ -47,6 +47,7 @@
       cursor: pointer;
       transition: all 0.3s ease;
       background-color: #ffffff;
+      position: relative;
 
       &:hover {
         background-color: #f8f9fa;
@@ -61,10 +62,30 @@
       .user-avatar {
         border: 2px solid #007bff;
         transition: transform 0.3s ease;
+        position: relative;
 
         &:hover {
           transform: scale(1.1);
         }
+
+        &::after {
+          content: "";
+          position: absolute;
+          bottom: 2px; // Đẩy chấm xuống dưới avatar
+          right: 2px; // Đẩy chấm qua phải avatar
+          width: 12px; // Kích thước chấm tròn
+          height: 12px;
+          border-radius: 50%;
+          border: 2px solid #fff; // Viền trắng để tách chấm khỏi avatar
+          background-color: transparent; // Mặc định ẩn chấm
+        }
+      }
+      .online::after {
+        background-color: green !important;
+      }
+    
+      .offline::after {
+        background-color: red !important;
       }
 
       .user-info {
@@ -167,4 +188,157 @@
       }
     }
   }
+  .create-group {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    max-width: 500px;
+    margin: auto;
+  
+    .group-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+  
+      .camera-btn {
+        background: #f0f2f5;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.3s;
+  
+        &:hover {
+          background: #e4e6eb;
+        }
+      }
+  
+      .group-name {
+        flex: 1;
+        input {
+          border: none;
+          font-size: 16px;
+          font-weight: 500;
+          padding: 8px;
+          width: 100%;
+          border-bottom: 2px solid #d9d9d9;
+          transition: border-color 0.3s;
+  
+          &:focus {
+            border-color: #1890ff;
+            outline: none;
+          }
+        }
+      }
+    }
+  
+    .group-content {
+      .group-search {
+        margin-bottom: 15px;
+  
+        input {
+          width: 100%;
+          padding: 8px 12px;
+          border-radius: 8px;
+          border: 1px solid #d9d9d9;
+          transition: border 0.3s;
+  
+          &:focus {
+            border-color: #1890ff;
+            outline: none;
+          }
+        }
+      }
+  
+      .group-main {
+        display: flex;
+        gap: 15px;
+  
+        .group-users,
+        .group-selected {
+          flex: 1;
+          background: #f9f9f9;
+          padding: 12px;
+          border-radius: 8px;
+  
+          h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+          }
+  
+          .user-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            transition: background 0.3s;
+  
+            &:hover {
+              background: #e6f7ff;
+            }
+  
+            img {
+              border-radius: 50%;
+            }
+  
+            .user-name {
+              font-size: 14px;
+            }
+          }
+  
+          ul {
+            list-style: none;
+            padding: 0;
+  
+            li {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 6px;
+              background: #fff;
+              border-radius: 6px;
+              box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+              margin-bottom: 6px;
+  
+              .remove-icon {
+                cursor: pointer;
+                color: #ff4d4f;
+                transition: color 0.3s;
+  
+                &:hover {
+                  color: #d9363e;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  
+    .create-btn {
+      width: 100%;
+      background: #1890ff;
+      color: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+  
+      &:hover {
+        background: #40a9ff;
+      }
+    }
+  }
+  
 }

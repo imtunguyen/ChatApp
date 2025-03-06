@@ -16,31 +16,34 @@
         <li nz-submenu nzOpen nzTitle="Dashboard" nzIcon="dashboard">
           <ul>
             <li nz-menu-item nzMatchRouter>
-                <a routerLink="/chat" ></a>
-                <nz-icon nzType="wechat" nzTheme="fill" />
-                <span>Chat</span>
+              <a routerLink="/chat"></a>
+              <nz-icon nzType="wechat" nzTheme="fill" />
+              <span>Chat</span>
             </li>
-            <li nz-menu-item nzMatchRouter>
-                <nz-icon nzType="setting" nzTheme="fill" />
-                <span>Setting</span>
-            </li>
+            
             <li nz-menu-item nzMatchRouter>
               <a routerLink="/friendship"></a>
               <nz-icon nzType="user" nzTheme="outline" />
               <span>FriendShip</span>
-          </li>
+            </li>
+      
+            <!-- Thêm nzMode="vertical" vào submenu Setting -->
+            <li nz-submenu nzTitle="Setting" nzIcon="setting" nzMode="vertical">
+              <ul>
+                <li nz-menu-item (click)="showModal()">Thông tin tài khoản</li>
+                <li nz-menu-item>Giao diện</li>
+                <li nz-menu-item>Option 11</li>
+              </ul>
+            </li>
+      
             <li nz-menu-item nzMatchRouter (click)="logout()">
-              
               <nz-icon nzType="logout" nzTheme="outline" />
               <span>Logout</span>
             </li>
-            <li nz-menu-item nzMatchRouter>
-              <a>Workplace</a>
-            </li>
           </ul>
         </li>
-        
       </ul>
+      
     </nz-sider>
     <nz-layout>
       <nz-header>
@@ -57,3 +60,73 @@
       </nz-content>
     </nz-layout>
   </nz-layout>
+
+  <nz-modal [(nzVisible)]="isVisible" nzTitle="Thông tin tài khoản" (nzOnCancel)="handleCancel()" [nzFooter]="customFooter">
+    <ng-container *nzModalContent>
+      <form [formGroup]="userForm">
+        <div class="profile-info">
+          <div class="avatar-container">
+            <img [src]="previewImage || currentUser?.profilePictureUrl" class="avatar" alt="Avatar" />
+            <label class="edit-avatar">
+              <nz-icon nzType="camera" nzTheme="outline"></nz-icon>
+              <input
+                id="profilePicture"
+                type="file"
+                (change)="onFileSelected($event)"
+                accept="image/*"
+                style="display: none;"
+                [disabled]="!isEditing"
+              />
+            </label>
+          </div>
+          
+          <h3 class="user-name"> 
+            <input 
+            nz-input
+            class="fullName"
+            formControlName="fullName" 
+            placeholder="Nhập Họ Tên" type="text"  [disabled]="!isEditing" />
+            <i nz-icon nzType="edit" (click)="toggleUpdate()"></i>
+          </h3>
+        </div>
+      
+        <div class="user-details">
+          <div class="info-item">
+            <span class="label">Giới tính</span>
+            <nz-select
+          id="gender"
+          nzPlaceHolder="Chọn giới tính"
+          formControlName="gender"
+          [nzDisabled]="!isEditing"
+        >
+          <nz-option *ngFor="let item of list" [nzValue]="item.value" [nzLabel]="item.display"></nz-option>
+        </nz-select>
+          </div>
+          <div class="info-item">
+            <span class="label">Email</span>
+            <input
+            nz-input
+            placeholder="Nhập Email"
+            formControlName="email"
+            type="email"
+            [disabled]="!isEditing"
+          />
+          </div>
+        </div>
+      </form>
+     
+
+    </ng-container>
+  </nz-modal>
+  <ng-template #customFooter>
+    @if(!isEditing){
+      <button nz-button nzType="default" class="btn btn-secondary col-12" (click)="toggleUpdate()"><i nz-icon nzType="edit"></i> Cập nhât</button>
+    }
+    @else{
+      <div class="col-12">
+        <button class="col-6 btn btn-danger " (click)="toggleUpdate()">Hủy</button>
+      <button class="col-6 btn btn-primary" (click)="saveChanges()">Cập nhật</button>
+      </div>
+      
+    }
+  </ng-template>
