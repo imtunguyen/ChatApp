@@ -78,4 +78,12 @@ export class AuthService {
   getOnlineUsers() {
     this.signalR.getOnlineUsers();
   }
+
+  forgotPassword(email: string): Observable<any> {
+    return this.api.get(`auth/ForgotPassword?email=${encodeURIComponent(email)}`);
+  }
+  resetPassword(data: { email: string; token: string; newPassword: string }): Observable<any> {
+    return this.api.post(`auth/ResetPassword`, data);
+  }
+  
 }

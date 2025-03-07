@@ -22,14 +22,11 @@ namespace ChatApp.Presentation.SignalR
             var userId = Context.UserIdentifier;
             if (string.IsNullOrEmpty(userId))
             {
-                Console.WriteLine("❌ Lỗi: UserIdentifier is NULL! Kiểm tra authentication.");
                 return;
             }
 
             OnlineUsers[Context.ConnectionId] = userId;
             await _userStatusService.SetUserOnline(userId);
-            Console.WriteLine($"🔵 Thêm User Online: {userId} với ConnectionId: {Context.ConnectionId}");
-
             await Clients.All.SendAsync("UserOnline", userId);
 
             await base.OnConnectedAsync();
@@ -71,7 +68,6 @@ namespace ChatApp.Presentation.SignalR
         public async Task GetOnlineUsers()
         {
             var onlineUsers = await _userStatusService.GetOnlineUsers();
-            Console.WriteLine("📢 Sending online users: " + string.Join(", ", onlineUsers));
             await Clients.Caller.SendAsync("ReceiveOnlineUsers", onlineUsers);
         }
 

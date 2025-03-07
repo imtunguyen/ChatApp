@@ -7,11 +7,18 @@ using ChatApp.Application.Mappers;
 using ChatApp.Domain.Entities;
 using ChatApp.Domain.Enums;
 using ChatApp.Domain.ValueObjects;
+using ChatApp.Infrastructure.Configuration;
+using ChatApp.Infrastructure.Configurations;
 using ChatApp.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
+using System.Text;
 using static ChatApp.Application.Abstracts.Services.Identity.Response;
 
 namespace ChatApp.Presentation.Controllers
@@ -22,16 +29,18 @@ namespace ChatApp.Presentation.Controllers
         private readonly SignInManager<AppUser> _signInManager;
         private readonly ITokenService _tokenService;
         private readonly IEmailService _emailService;
+        private readonly EmailConfig _emailConfig;
         private readonly ICloudinaryService _cloudinaryService;
 
         public AuthController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager,
-            ITokenService tokenService, IEmailService emailService, ICloudinaryService cloudinaryService)
+            ITokenService tokenService, IEmailService emailService, ICloudinaryService cloudinaryService, IOptions<EmailConfig> emailConfig)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _tokenService = tokenService;
             _emailService = emailService;
             _cloudinaryService = cloudinaryService;
+            _emailConfig = emailConfig.Value;
         }
 
         [HttpPost("login")]
@@ -130,28 +139,68 @@ namespace ChatApp.Presentation.Controllers
             var result = await _userManager.CreateAsync(user, dto.Password);
             if (result.Succeeded)
             {
-                //var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                //var confirmationLink = Url.Action("ConfirmEmail", "Auth", new { userId = user.Id, token }, Request.Scheme);
-                //if (confirmationLink == null)
-                //{
-                //    return BadRequest("Confirmation link is null. Check if the action and controller exist.");
-                //}
-                //var emailRequest = new EmailRequest
-                //{
-                //    To = user.Email,
-                //    Subject = "Confirm your email",
-                //    Content = $"Please confirm your email by clicking <a href='{confirmationLink}'>here</a>"
-                //};
-                //await _emailService.SendMailAsync(CancellationToken.None, emailRequest);
-                //var resultAddRole = await _userManager.AddToRoleAsync(user, "User");
-                //if (resultAddRole.Succeeded)
-                //{
-                    return Ok();
-                //}
-
+                return Ok();
             }
             return BadRequest(result.Errors);
         }
+
+        [HttpGet("ForgotPassword")]
+        public async Task<IActionResult> ForgotPassword(CancellationToken cancellationToken, string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return BadRequest("Email không hợp lệ");
+            }
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                return Ok(new { Message = "Vui lòng kiểm tra Email" });
+            }
+
+            string host = _emailConfig.AppUrl?.TrimEnd('/');
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            string encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+
+            string resetPasswordUrl = $"{host}/reset-password?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(encodedToken)}";
+
+            string body = $@"
+                <p>Chào {user.UserName},</p>
+                <p>Bạn đã yêu cầu đặt lại mật khẩu. Vui lòng bấm vào link bên dưới để đặt lại:</p>
+                <p><a href=""{resetPasswordUrl}"">Bấm vào đây để đổi lại mật khẩu mới</a></p>
+                <p>Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>";
+
+            await _emailService.SendMailAsync(cancellationToken, new EmailRequest
+            {
+                To = email,
+                Subject = "Reset Password",
+                Content = body
+            });
+
+            return Ok(new { Message = "Vui lòng kiểm tra Email" });
+        }
+
+        [HttpPost("ResetPassword")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto request)
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user == null)
+            {
+                return BadRequest("User not found");
+            }
+
+            string decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
+            var result = await _userManager.ResetPasswordAsync(user, decodedToken, request.NewPassword);
+
+            if (!result.Succeeded)
+            {
+                return BadRequest("Token không hợp lệ hoặc đã hết hạn!");
+            }
+
+            return Ok(new { Message = "Đổi mật khẩu thành công!" });
+        }
+
+
 
         [HttpGet("ConfirmEmail")]
         public async Task<IActionResult> ConfirmEmail(string userId, string token)

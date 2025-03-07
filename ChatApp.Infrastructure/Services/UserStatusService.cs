@@ -21,7 +21,6 @@ namespace ChatApp.Infrastructure.Services
         public async Task SetUserOnline(string userId)
         {
             await _redisDatabase.StringSetAsync($"user:{userId}:status", "Online", TimeSpan.FromHours(1));
-            Console.WriteLine($"🟢 User {userId} đã được đặt trạng thái Online trong Redis!");
         }
 
         public async Task SetUserOffline(string userId)
@@ -41,8 +40,6 @@ namespace ChatApp.Infrastructure.Services
                         .Keys(pattern: "user:*:status")
                         .ToArray();
 
-            Console.WriteLine("🔍 Found keys in Redis: " + string.Join(", ", keys));
-
             var users = new List<string>();
 
             foreach (var key in keys)
@@ -55,8 +52,6 @@ namespace ChatApp.Infrastructure.Services
                     users.Add(key.ToString().Replace("user:", "").Replace(":status", ""));
                 }
             }
-
-            Console.WriteLine("📢 Final Online Users: " + string.Join(", ", users));
             return users;
         }
 

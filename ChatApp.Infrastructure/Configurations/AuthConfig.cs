@@ -59,7 +59,6 @@ namespace ChatApp.Infrastructure.Configurations
                         OnMessageReceived = context =>
                         {
                             var accessToken = context.Request.Query["access_token"];
-                            Console.WriteLine($"🔵 Debug: Token từ Query String = {accessToken}");
 
                             var path = context.HttpContext.Request.Path;
                             if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chat"))

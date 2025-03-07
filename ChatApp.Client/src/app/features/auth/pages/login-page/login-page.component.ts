@@ -38,6 +38,9 @@ export class LoginPageComponent {
       },
     });
   }
+  navigateToForgotPassword(){
+    this.router.navigate(['/forgot-password']);
+  }
 
   navigateToRegister() {
     this.router.navigate(['/register']);

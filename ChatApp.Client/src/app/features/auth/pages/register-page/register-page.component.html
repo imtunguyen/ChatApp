@@ -1,8 +1,26 @@
 <nz-card nzTitle="Đăng ký" class="register-card">
   <form nz-form [formGroup]="registerForm" (ngSubmit)="onRegister()">
+
+     <!-- Profile Picture -->
+     <div nz-row [nzGutter]="16">
+      <div class="avatar-container">
+        <img [src]="previewImage || 'https://res.cloudinary.com/dlhwuvhhp/image/upload/v1734098200/user_rvnqoh.png'" class="avatar" alt="Avatar" />
+        <label class="edit-avatar">
+          <nz-icon nzType="camera" nzTheme="outline"></nz-icon>
+          <input
+            id="profilePicture"
+            formControlName="profilePicture"
+            type="file"
+            (change)="onFileSelected($event)"
+            accept="image/*"
+            style="display: none;"
+          />
+        </label>
+      </div>
+    </div>
     <!-- Full Name -->
     <div nz-row [nzGutter]="16">
-      <div nz-col nzSpan="8">
+      <div nz-col nzSpan="8" style="margin-left: 0 !important;">
         <nz-form-label nzFor="fullName">Họ tên</nz-form-label>
       </div>
       <div nz-col nzSpan="16">
@@ -82,79 +100,79 @@
       </div>
     </div>
 
-    <!-- Password -->
-    <div nz-row [nzGutter]="16">
-      <div nz-col nzSpan="8">
-        <nz-form-label nzFor="password">Mật khẩu</nz-form-label>
-      </div>
-      <div nz-col nzSpan="16">
-        <nz-form-item>
-          <nz-form-control [nzErrorTip]="passwordErrorTpl">
-            <nz-input-group [nzSuffix]="passwordSuffix">
-              <input
-                nz-input
-                id="password"
-                [type]="passwordVisible ? 'text' : 'password'"
-                placeholder="Nhập mật khẩu"
-                formControlName="password"
-                name="password"
-                required
-              />
-            </nz-input-group>
-            <ng-template #passwordSuffix>
-              <span
-                nz-icon
-                [nzType]="passwordVisible ? 'eye-invisible' : 'eye'"
-                (click)="passwordVisible = !passwordVisible"
-              ></span>
-            </ng-template>
-            <ng-template #passwordErrorTpl let-control>
-              <ng-container *ngIf="control.hasError('required')">
-                Vui lòng nhập mật khẩu
-              </ng-container>
-            </ng-template>
-          </nz-form-control>
-        </nz-form-item>
-      </div>
-    </div>
+<!-- Password -->
+<div nz-row [nzGutter]="16">
+  <div nz-col nzSpan="8">
+    <nz-form-label nzFor="password">Mật khẩu</nz-form-label>
+  </div>
+  <div nz-col nzSpan="16">
+    <nz-form-item>
+      <nz-form-control [nzErrorTip]="passwordErrorTpl">
+        <nz-input-group [nzSuffix]="passwordSuffix">
+          <input
+            nz-input
+            id="password"
+            [type]="passwordVisible ? 'text' : 'password'"
+            placeholder="Nhập mật khẩu"
+            formControlName="password"
+            required
+          />
+        </nz-input-group>
+        <ng-template #passwordSuffix>
+          <span
+            nz-icon
+            [nzType]="passwordVisible ? 'eye-invisible' : 'eye'"
+            (click)="passwordVisible = !passwordVisible"
+          ></span>
+        </ng-template>
+        <ng-template #passwordErrorTpl let-control>
+          <ng-container *ngIf="control.hasError('required')">
+            Vui lòng nhập mật khẩu
+          </ng-container>
+        </ng-template>
+      </nz-form-control>
+    </nz-form-item>
+  </div>
+</div>
 
-    <!-- Confirm Password -->
-    <div nz-row [nzGutter]="16">
-      <div nz-col nzSpan="8">
-        <nz-form-label nzFor="confirmPassword">Nhập lại mật khẩu</nz-form-label>
-      </div>
-      <div nz-col nzSpan="16">
-        <nz-form-item>
-          <nz-form-control [nzErrorTip]="confirmPasswordErrorTpl">
-            <nz-input-group [nzSuffix]="confirmPasswordSuffix">
-              <input
-                nz-input
-                id="confirmPassword"
-                [type]="confirmPasswordVisible ? 'text' : 'password'"
-                placeholder="Nhập lại mật khẩu"
-                formControlName="confirmPassword"
-                required
-              />
-            </nz-input-group>
-            <ng-template #confirmPasswordSuffix>
-              <span
-                nz-icon
-                [nzType]="confirmPasswordVisible ? 'eye-invisible' : 'eye'"
-                (click)="confirmPasswordVisible = !confirmPasswordVisible"
-              ></span>
-            </ng-template>
-            <ng-template #confirmPasswordErrorTpl let-control>
-              <ng-container *ngIf="control.hasError('required')">
-                Vui lòng nhập lại mật khẩu
-              </ng-container>
-              <ng-container *ngIf="registerForm.hasError('notSame')">
-                Mật khẩu không khớp
-              </ng-container>
-            </ng-template>
-          </nz-form-control>
-        </nz-form-item>
-      </div>
-    </div>
+<!-- Confirm Password -->
+<div nz-row [nzGutter]="16">
+  <div nz-col nzSpan="8">
+    <nz-form-label nzFor="confirmPassword">Nhập lại mật khẩu</nz-form-label>
+  </div>
+  <div nz-col nzSpan="16">
+    <nz-form-item>
+      <nz-form-control [nzErrorTip]="confirmPasswordErrorTpl">
+        <nz-input-group [nzSuffix]="confirmPasswordSuffix">
+          <input
+            nz-input
+            id="confirmPassword"
+            [type]="confirmPasswordVisible ? 'text' : 'password'"
+            placeholder="Nhập lại mật khẩu"
+            formControlName="confirmPassword"
+            required
+          />
+        </nz-input-group>
+        <ng-template #confirmPasswordSuffix>
+          <span
+            nz-icon
+            [nzType]="confirmPasswordVisible ? 'eye-invisible' : 'eye'"
+            (click)="confirmPasswordVisible = !confirmPasswordVisible"
+          ></span>
+        </ng-template>
+        <ng-template #confirmPasswordErrorTpl let-control>
+          <ng-container *ngIf="control.hasError('required')">
+            Vui lòng nhập lại mật khẩu
+          </ng-container>
+          <ng-container *ngIf="registerForm.hasError('notSame')">
+            Mật khẩu không khớp
+          </ng-container>
+        </ng-template>
+      </nz-form-control>
+    </nz-form-item>
+  </div>
+</div>
+
 
     <!-- Gender -->
     <div nz-row [nzGutter]="16">
@@ -177,36 +195,12 @@
       </div>
     </div>
 
-    <!-- Profile Picture -->
-    <div nz-row [nzGutter]="16">
-      <div nz-col nzSpan="8">
-        <nz-form-label nzFor="profilePicture">Ảnh đại diện</nz-form-label>
-      </div>
-      <div nz-col nzSpan="16">
-        <nz-form-item>
-          <nz-form-control [nzErrorTip]="profilePictureErrorTpl">
-            <input
-              nz-input
-              id="profilePicture"
-              type="file"
-              formControlName="profilePicture"
-              name="avatar"
-              required
-            />
-            <ng-template #profilePictureErrorTpl let-control>
-              <ng-container *ngIf="control.hasError('required')">
-                Vui lòng chọn ảnh đại diện
-              </ng-container>
-            </ng-template>
-          </nz-form-control>
-        </nz-form-item>
-      </div>
-    </div>
+   
 
     <!-- Submit Button -->
     <div nz-row>
       <div nz-col nzSpan="24" class="form-actions">
-        <button nz-button nzType="primary" [disabled]="registerForm.invalid">Đăng ký</button>
+        <button nz-button nzType="primary" >Đăng ký</button>
       </div>
       <div nz-col nzSpan="24" class="login-link">
         Đã có tài khoản?

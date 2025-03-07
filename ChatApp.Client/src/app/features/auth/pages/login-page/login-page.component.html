@@ -3,7 +3,7 @@
     <div nz-row [nzGutter]="16">
       <!-- Username or Email -->
       <div nz-col nzSpan="8">
-        <nz-form-label>Username or Email</nz-form-label>
+        <nz-form-label>Username or Email: </nz-form-label>
       </div>
       <div nz-col nzSpan="16">
         <nz-form-item>
@@ -42,6 +42,9 @@
     </div>
 
     <div nz-row>
+      <div nz-col nzSpan="24" class="forgot-password-link">
+        <a class="forgot-password-text" (click)="navigateToForgotPassword()">Quên mật khẩu?</a>
+      </div>
       <div nz-col nzSpan="24" class="form-actions">
         <button nz-button nzType="primary" (click)="onLogin()">Login</button>
       </div>
