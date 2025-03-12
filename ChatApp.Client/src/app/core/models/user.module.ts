@@ -7,4 +7,5 @@ export interface User {
   token: string;
   gender: string;
   isOnline: boolean;
+  isSelected: boolean;
 }

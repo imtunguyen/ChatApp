@@ -2,11 +2,13 @@
 {
     public enum MessageType
     {
+        Unknown, 
         Text,
         Image,
         Video,
         File,
-        Audio
+        Audio,
+        Mixed 
     }
 
 }

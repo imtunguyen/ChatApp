@@ -14,22 +14,27 @@ import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { Router } from '@angular/router';
 import { VideoCallComponent } from "../video-call/video-call.component";
 import { SignalRService } from '../../../../core/services/signalr.service';
+import { InfiniteScrollModule } from 'ngx-infinite-scroll';
+import { GroupService } from '../../../../core/services/group.service';
+import { tap } from 'rxjs';
 @Component({
   selector: 'app-chat-box',
-  imports: [CommonModule, NzAvatarComponent, NzIconModule, FormsModule, NzSpinModule, VideoCallComponent],
+  imports: [CommonModule, NzAvatarComponent, NzIconModule, FormsModule, NzSpinModule, VideoCallComponent, InfiniteScrollModule],
   templateUrl: './chat-box.component.html',
   styleUrl: './chat-box.component.scss'
 })
 export class ChatBoxComponent implements OnInit, OnChanges{
   @Input() selectedUser: any;
-  @Input() selectedChatRoom: any;
+  @Input() selectedGroup: any;
 
-  userChatRooms: User[] = [];
+  userGroups: User[] = [];
+  userCache = new Map<string, any>();
   currentUser: any;
   avatars: { [key: string]: string } = {};
   isVisible: boolean = true;
   isVideoCallVisible: boolean = false;
-  loading: boolean = false;
+  
+  isEditing: boolean = false;
 
   //record
   isRecording: boolean = false;
@@ -37,34 +42,59 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   mediaRecorder: MediaRecorder | null = null;
   audioChunks: Blob[] = [];
 
+  //search
+  isSearching = false;
+  searchText = '';
+
+  @ViewChild('searchBox') searchBox!: ElementRef;
+
 
   //message
-  
+  idMessage: number = 0;
+  originalMessage: string = '';
   messages: Message[] = [];
-  messageParams = new MessageParams();
-  pagination: Pagination = { currentPage: 1, itemsPerPage: 5, totalItems: 0, totalPages: 0 };
+  pagination: Pagination = {
+    currentPage: 1,
+    itemPerPage: 10,
+    totalItems: 0,
+    totalPages: 1,
+  };
+
+  params = {
+    pageNumber: 1,
+    pageSize: 10,
+    search: '',
+  };
+  addPageSize: number = 5;
+  loading = false;
   newMessage = '';
   MessageType: typeof MessageType = MessageType;
   selectedFiles: { src: string; file: File}[] = [];
 
-  @ViewChild('messageContainer') messageContainer!: ElementRef;
+  @ViewChild('messageContainer') messagesContainer!: ElementRef;
 
   private messageService = inject(MessageService);
   private authService = inject(AuthService);
   private signalRService = inject(SignalRService);
+  private groupService = inject(GroupService);
 
   constructor(private router: Router) {
     this.currentUser = this.authService.getCurrentUser();
   }
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['selectedUser'] && changes['selectedUser'].currentValue) {
+      this.selectedGroup = null;
       this.resetValues();
-      this.getMessagesThread();
+      this.loadMessages();
       this.scrollToBottom();
       console.log("day la selectUser", this.selectedUser)
-    } else if (changes['selectedChatRoom'] && changes['selectedChatRoom'].currentValue) {
+    } else if (changes['selectedGroup'] && changes['selectedGroup'].currentValue) {
+      this.selectedUser = null;
       this.resetValues();
-      this.getMessagesChatRoom();
+      this.loadMessagesGroup();
+      this.scrollToBottom();
+      this.loadUserGroups();
+      console.log("Đã chọn Group:", this.selectedGroup);
     }
   }
   ngOnInit(): void {
@@ -76,6 +106,7 @@ export class ChatBoxComponent implements OnInit, OnChanges{
         }
       }
     });
+    
   }
   resetValues(): void {
     this.messages = [];
@@ -83,14 +114,14 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     this.avatars = {};
   }
 
-  onScroll(){
-    const element = this.messageContainer.nativeElement;
+  onScroll() {
+    const element = this.messagesContainer.nativeElement;
     const previousHeight = element.scrollHeight;
 
-    if(element.scrollTop === 0 && !this.loading){
-      if(this.pagination.currentPage < this.pagination.totalPages){
-        this.messageParams.pageNumber++;
-        this.getMessagesThread();
+    if (element.scrollTop === 0 && !this.loading) {
+      if (this.pagination.currentPage < this.pagination.totalPages) {
+        this.params.pageNumber++;
+        this.loadMessages();
         setTimeout(() => {
           const currentHeight = element.scrollHeight;
           element.scrollTop = currentHeight - previousHeight;
@@ -99,11 +130,61 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     }
   }
 
+  
+
   scrollToBottom(): void {
-    const element = this.messageContainer.nativeElement;
+    const element = this.messagesContainer.nativeElement;
     setTimeout(() => {
       element.scrollTop = element.scrollHeight;
     }, 100);
+  }
+
+  toggleSearch() {
+    this.isSearching = true;
+    setTimeout(() => {
+      this.searchBox.nativeElement.focus();
+      
+      
+    });
+  }
+
+  getUserById(userId: string) {
+    if (this.userCache.has(userId)) {
+      return this.userCache.get(userId);
+    }
+    return this.authService.getUserById(userId).pipe(
+      tap(user => this.userCache.set(userId, user)) 
+    );
+  }
+
+  onSearchChange() {
+    if (!this.searchText || this.searchText.trim() === '') {
+      this.params.search = "";
+      this.params.pageNumber = 1; 
+      this.messages = []; 
+      this.loadMessages();
+      this.scrollToBottom();
+      return;
+    }
+  
+    this.params.search = this.searchText;
+    this.messageService.getMessagesThread(this.params, this.currentUser.id, this.selectedUser.id)
+      .subscribe({
+        next: (response) => {
+          console.log("Raw API Response:", response);
+          this.messages = response.items || [];
+          console.log("Final Messages:", this.messages);
+        },
+        error: (error) => {
+          console.error("Error fetching messages:", error);
+        }
+      });
+  }
+
+  hideSearch() {
+    if(!this.searchText.trim()) {
+      this.isSearching = false;
+    }
   }
 
   toggleChatDetail(){
@@ -114,75 +195,150 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     this.isVideoCallVisible = !this.isVideoCallVisible;
   }
     
+  updateMessage(message: Message) {
+    console.log("update message", message)
+    if(message.senderId !== this.currentUser.id) return;
+    this.originalMessage = message.content;
+    this.idMessage = message.id;
+    this.newMessage = message.content;
+    this.isEditing = true;
+  }
+
+  deleteMessage(messageId: number) {
+    this.messageService.deleteMessage(messageId).subscribe({
+      next: () => {
+        this.messages = this.messages.filter(m => m.id !== messageId);
+      },
+      error: (error) => console.log(error)
+    });
+  }
 
 
-  sendMessage() {
-    if (this.newMessage.trim() || this.audioUrl || this.selectedFiles.length > 0) {
-      const formData = new FormData();
-      formData.append('content', this.newMessage);
-      formData.append('recipientId', this.selectedUser.id);
-      formData.append('senderId', this.currentUser.id);
+  async sendMessage() {
+    if (!this.newMessage.trim() && !this.audioUrl && this.selectedFiles.length === 0) {
+      return; 
+    }
   
-      // Gửi các file ảnh hoặc video kèm theo
-      this.selectedFiles.forEach((file) => {
-        formData.append('files', file.file);
-      });
+    const formData = new FormData();
+    formData.append('id', this.idMessage.toString()); 
+    formData.append('content', this.newMessage);
+    formData.append('recipientId', this.selectedUser?.id || null);
+
+    formData.append('senderId', this.currentUser.id);
   
-      // Gửi file audio nếu có
+    this.selectedFiles.forEach(file => formData.append('files', file.file));
+  
+    try {
       if (this.audioUrl) {
-        fetch(this.audioUrl)
-          .then(res => res.blob())
-          .then(blob => {
-            formData.append('files', blob, 'recording.wav');
+        const blob = await this.fetchAudioBlob(this.audioUrl);
+        formData.append('files', blob, 'recording.wav');
+      }
   
-            this.messageService.addMessage(formData).subscribe({
-              next: (response) => {
-                this.messages.push(response as Message);
-                this.signalRService.sendMessage((response as Message).content, this.selectedUser.id);
-
-                this.scrollToBottom();
-                this.resetMessageInput();
-
-              },
-              error: (error) => {
-                console.log(error);
-              }
-            });
-          })
-          .catch(error => console.error('Error fetching audio:', error));
+      if(this.idMessage === 0){
+        this.sendMessageToServer(formData);
       } else {
-        this.messageService.addMessage(formData).subscribe({
+        this.messageService.updateMessage(formData).subscribe({
           next: (response) => {
-            this.messages.push(response as Message);
-            this.signalRService.sendMessage((response as Message).content, this.selectedUser.id);
-
-            this.scrollToBottom();
+            const message = response as Message;
+            this.messages = this.messages.map(m => m.id === message.id ? message : m);
+            this.signalRService.sendMessage(message.content, this.selectedUser.id);
+            this.isEditing = false;
             this.resetMessageInput();
           },
-          error: (error) => {
-            console.log(error);
-          }
+          error: (error) => console.log(error)
         });
       }
+    } catch (error) {
+      console.error('Lỗi khi gửi tin nhắn:', error);
     }
   }
   
+  private async fetchAudioBlob(audioUrl: string): Promise<Blob> {
+    const response = await fetch(audioUrl);
+    return response.blob();
+  }
+  
+  private sendMessageToServer(formData: FormData) {
+    if(this.selectedGroup){
+      formData.append('groupId', this.selectedGroup.id);
+      this.messageService.addMessage(formData).subscribe({
+        next: (response) => {
+          const message = response as Message;
+          this.messages.push(message);
+          this.signalRService.sendMessage(message.content, this.selectedGroup.id);
+    
+          this.scrollToBottom();
+          this.resetMessageInput();
+        }
+      });
+    } else{
 
-
-  getMessagesThread(){
-    if(this.loading) return;
+      this.messageService.addMessage(formData).subscribe({
+        next: (response) => {
+          const message = response as Message;
+          this.messages.push(message);
+          this.signalRService.sendMessage(message.content, this.selectedUser.id);
+    
+          this.scrollToBottom();
+          this.resetMessageInput();
+        },
+        error: (error) => console.log(error)
+      });
+    }
+    
+  }
+  
+  loadMessages() {
+    if (this.loading) return;
     this.loading = true;
-    this.messageService.getMessagesThread(this.messageParams, this.currentUser.id, this.selectedUser.id).subscribe({
-      next: (response) => {
-        this.messages = response.result as Message[];
-        this.pagination = response.pagination as Pagination;
-        console.log(this.messages)
+
+    this.messageService
+      .getMessagesThread(this.params, this.currentUser.id, this.selectedUser.id)
+      .subscribe((result) => {
+        if (result.items) {
+          this.messages = [...result.items.reverse(), ...this.messages];
+        }
+        console.log('messages', this.messages);
+        this.pagination = result.pagination || {
+          currentPage: 1,
+          itemPerPage: 10,
+          totalItems: 0,
+          totalPages: 1,
+        };
         this.loading = false;
-      },
-      error: (error) => {
-        console.log(error);
-      }
-    });
+      });
+  }
+
+  loadMessagesGroup() {
+    if (this.loading) return;
+    this.loading = true;
+    
+    this.messageService
+      .getMessagesGroup(this.params, this.selectedGroup.id)
+      .subscribe((result) => {
+        if (result.items) {
+          this.messages = [...result.items.reverse(), ...this.messages];
+          
+        }
+        console.log('messages', this.messages);
+        this.messages.forEach(message => {
+          this.getUserById(message.senderId).subscribe({
+            next: (user : any) => {
+              this.avatars[message.senderId] = user.profilePictureUrl;
+            },
+            error: (error: any) => {
+              console.log(error);
+            }
+          });
+        });
+        this.pagination = result.pagination || {
+          currentPage: 1,
+          itemPerPage: 10,
+          totalItems: 0,
+          totalPages: 1,
+        };
+        this.loading = false;
+      });
   }
 
   isImage(message: Message): boolean {
@@ -241,32 +397,6 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     this.selectedFiles.splice(index, 1);
   }
 
-
-  getMessagesChatRoom(){
-    this.messageService.getMessagesChatRoom(this.messageParams, this.selectedChatRoom.id).subscribe({
-      next: (response) => {
-        this.messages = response.result as Message[];
-        this.pagination = response.pagination as Pagination;
-
-        this.messages.forEach(message => {
-          this.authService.getUserById(message.senderId).subscribe({
-            next: (user) => {
-              this.avatars[message.senderId] = user.profilePictureUrl;
-            },
-            error: (error) => {
-              console.log(error);
-            }
-          });
-        })
-
-
-      },
-      error: (error) => {
-        console.log(error);
-      }
-    });
-  }
-
   startRecording() {
     this.isRecording = true;
     navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
@@ -287,17 +417,59 @@ export class ChatBoxComponent implements OnInit, OnChanges{
 }
 
 
-stopRecording() {
-  this.isRecording = false;
-  if (this.mediaRecorder) {
-      this.mediaRecorder.stop();
+  stopRecording() {
+    this.isRecording = false;
+    if (this.mediaRecorder) {
+        this.mediaRecorder.stop();
+    }
   }
-}
 
 
   resetMessageInput() {
     this.newMessage = '';
     this.selectedFiles = [];
   }
+
+  // Group
+
+  loadUserGroups() {
+    this.groupService.getUsersByGroup(this.selectedGroup.id).subscribe({
+      next: (users) => {
+        console.log("UsersGroup:", users);
+        this.userGroups = Array.isArray(users) ? users : [];
+      },
+      error: (error) => {
+        console.log(error);
+      }
+    });
+  }
+
+
+  // getMessagesChatRoom(){
+  //   this.messageService.getMessagesChatRoom(this.messageParams, this.selectedChatRoom.id).subscribe({
+  //     next: (response) => {
+  //       this.messages = response.result as Message[];
+  //       this.pagination = response.pagination as Pagination;
+
+  //       this.messages.forEach(message => {
+  //         this.authService.getUserById(message.senderId).subscribe({
+  //           next: (user) => {
+  //             this.avatars[message.senderId] = user.profilePictureUrl;
+  //           },
+  //           error: (error) => {
+  //             console.log(error);
+  //           }
+  //         });
+  //       })
+
+
+  //     },
+  //     error: (error) => {
+  //       console.log(error);
+  //     }
+  //   });
+  // }
+
+ 
 
 }

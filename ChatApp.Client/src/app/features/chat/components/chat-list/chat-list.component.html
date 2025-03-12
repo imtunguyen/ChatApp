@@ -14,7 +14,8 @@
     </div>
     <div class="col-3 d-flex justify-content-end">
       <button nz-button nzType="default" nzShape="circle" class="action-button" (click)="showAddFriendModal()">
-        <nz-modal [(nzVisible)]="isFriendVisible" nzTitle="Thêm bạn" (nzOnCancel)="handleCancel()" [nzFooter]="customFooter">
+        <nz-modal [(nzVisible)]="isFriendVisible" nzTitle="Thêm bạn" (nzOnCancel)="handleCancel()"
+          [nzFooter]="customFooter">
           <ng-container *nzModalContent>
             <input nz-input [autofocus]="true" [nzSize]="'default'" placeholder="Nhập tên hoặc email"
               [(ngModel)]="name" />
@@ -25,24 +26,19 @@
                 <img [src]="user.profilePictureUrl" class="rounded-circle user-avatar me-2" alt="Avatar" />
                 <span class="user-name flex-grow-1">{{ user.fullName }}</span>
 
-                <button
-                *ngIf="getFriendShipStatus(user.id) == 0"
-                nz-button
-                nzType="primary"
-                class="add-btn"
-                (click)="addFriend(user.id)"
-              >
-                Thêm
-              </button>
-      
-              <!-- Nút "Hủy" và "Đã gửi yêu cầu" (khi đã gửi yêu cầu) -->
-              <div *ngIf="getFriendShipStatus(user.id) == 1" class="d-flex align-items-center">
-                <span class="ms-2 text-muted">Đã gửi yêu cầu</span>
-                <button nz-button nzType="default" class="btn btn-danger" (click)="cancelFriendRequest(user.id)">
-                  Hủy
+                <button *ngIf="getFriendShipStatus(user.id) == 0" nz-button nzType="primary" class="add-btn"
+                  (click)="addFriend(user.id)">
+                  Thêm
                 </button>
-                
-              </div>
+
+                <!-- Nút "Hủy" và "Đã gửi yêu cầu" (khi đã gửi yêu cầu) -->
+                <div *ngIf="getFriendShipStatus(user.id) == 1" class="d-flex align-items-center">
+                  <span class="ms-2 text-muted">Đã gửi yêu cầu</span>
+                  <button nz-button nzType="default" class="btn btn-danger" (click)="cancelFriendRequest(user.id)">
+                    Hủy
+                  </button>
+
+                </div>
 
                 <i class="bi bi-x-circle-fill remove-icon text-danger ms-2"></i>
               </div>
@@ -56,61 +52,66 @@
         <button nz-button nzType="default" class="btn btn-primary" (click)="handleCancel()">Đóng</button>
       </ng-template>
       <button nz-button nzType="default" nzShape="circle" class="action-button" (click)="showAddGroupModal()">
-        <nz-modal [(nzVisible)]="isGroupVisible" nzTitle="Thêm bạn" (nzOnCancel)="handleCancel()" [nzFooter]="customFooter">
+        <nz-modal [(nzVisible)]="isGroupVisible" nzTitle="Tạo nhóm" (nzOnCancel)="handleCancel()"
+          [nzFooter]="customFooter">
           <ng-container *nzModalContent>
-              <div class="create-group">
-                <form nz-form [formGroup]="groupForm">
-                  <div class="group-header">
-                    <button nz-button class="camera-btn">
-                      <label for="fileInput">
-                        <i nz-icon nzType="picture" nzTheme="outline"></i>
-                        <input type="file" id="fileInput" (change)="onFileSelected($event)" multiple style="display: none;" />
-                      </label>
-                    </button>
-                    <nz-input-group class="group-name border-bottom-only">
-                      <input nz-input formControlName="name" [(ngModel)]="value" (ngModelChange)="onModelChange($event)" placeholder="Nhập tên nhóm" />
+            <div class="create-group">
+              <form [formGroup]="groupForm">
+                <div class="group-header">
+                  <label class="camera-btn">
+                    <nz-icon nzType="camera" nzTheme="outline"></nz-icon>
+                    <input type="file" formControlName="file" (change)="onFileSelected($event)" accept="image/*"
+                      style="display: none;" />
+                  </label>
+
+                  <nz-input-group class="group-name border-bottom-only">
+                    <input nz-input formControlName="name" placeholder="Nhập tên nhóm" />
+                  </nz-input-group>
+                </div>
+
+                <div class="group-content">
+                  <div class="group-search">
+                    <nz-input-group [nzSuffix]="suffixIconSearch">
+                      <input nz-input [(ngModel)]="search" [ngModelOptions]="{standalone: true}"
+                        placeholder="Tìm kiếm" />
                     </nz-input-group>
+                    <ng-template #suffixIconSearch>
+                      <i nz-icon nzType="search"></i>
+                    </ng-template>
                   </div>
-              
-                  <div class="group-content">
-                    <div class="group-search">
-                      <nz-input-group [nzSuffix]="suffixIconSearch">
-                        <input nz-input [(ngModel)]="search" placeholder="Tìm kiếm" />
-                      </nz-input-group>
-                      <ng-template #suffixIconSearch>
-                        <i nz-icon nzType="search"></i>
-                      </ng-template>
-                    </div>
-              
-                    <div class="group-main">
-                      <div class="group-users">
-                        <h4>Danh sách người dùng</h4>
-                        <div *ngFor="let user of users" class="user-item">
-                          <label nz-checkbox [ngModel]="selectedUsers.includes(user)" (ngModelChange)="toggleUser(user, $event)">
-                            <img [src]="user.profilePictureUrl" class="rounded-circle me-3 user-avatar" alt="Avatar" width="40" height="40" />
-                            <span class="user-name">{{ user.fullName }}</span>
-                          </label>
-                        </div>
-                      </div>
-              
-                      <div class="group-selected">
-                        <h4>Đã chọn</h4>
-                        <ul>
-                          <li *ngFor="let user of selectedUsers">
-                            <img [src]="user.profilePictureUrl" class="rounded-circle me-3 selected-avatar" alt="Avatar" width="25" height="25" />
-                            {{ user.fullName }}
-                            <i nz-icon nzType="close-circle" nzTheme="fill" class="remove-icon" (click)="toggleUser(user, false)"></i>
-                          </li>
-                        </ul>
+
+                  <div class="group-main">
+                    <div class="group-users">
+                      <h4>Danh sách người dùng</h4>
+                      <div *ngFor="let user of users" class="user-item">
+                        <label nz-checkbox [(ngModel)]="user.isSelected" [ngModelOptions]="{standalone: true}"
+                          (ngModelChange)="toggleUser(user)">
+                          <img [src]="user.profilePictureUrl" class="rounded-circle me-3 user-avatar" alt="Avatar"
+                            width="40" height="40" />
+                          <span class="user-name">{{ user.fullName }}</span>
+                        </label>
                       </div>
                     </div>
+
+                    <div class="group-selected" *ngIf="selectedUsers.length > 0">
+                      <h4>Đã chọn</h4>
+                      <ul>
+                        <li *ngFor="let user of selectedUsers">
+                          <img [src]="user.profilePictureUrl" class="rounded-circle me-3 selected-avatar" alt="Avatar"
+                            width="25" height="25" />
+                          {{ user.fullName }}
+
+                        </li>
+                      </ul>
+                    </div>
                   </div>
-              
-                  <button nz-button class="create-btn" type="button" (click)="addGroup()">
-                    Tạo nhóm
-                  </button>
-                </form>
-              </div>
+                </div>
+
+                <button nz-button class="create-btn" type="button" (click)="addGroup()">
+                  Tạo nhóm
+                </button>
+              </form>
+            </div>
 
           </ng-container>
         </nz-modal>
@@ -132,8 +133,8 @@
     <!-- Danh sách người dùng -->
     <li *ngFor="let user of users" class="list-group-item d-flex align-items-center py-3 px-4 chat-user-item"
       (click)="selectUser(user)">
-      <nz-avatar [nzSrc]="user.profilePictureUrl" nzSize="large" class="user-avatar" 
-      [class.online]="user.isOnline" [class.offline]="!user.isOnline"></nz-avatar>
+      <nz-avatar [nzSrc]="user.profilePictureUrl" nzSize="large" class="user-avatar" [class.online]="user.isOnline"
+        [class.offline]="!user.isOnline"></nz-avatar>
 
       <div class="d-flex flex-column">
         <div class="user-name">{{ user.fullName }}</div>
@@ -142,7 +143,20 @@
     </li>
 
     <!-- Danh sách phòng chat -->
+    <li *ngFor="let group of groups" class="list-group-item d-flex align-items-center py-3 px-4 "
+      (click)="selectGroup(group)">
+      <nz-avatar-group>
+        <nz-avatar *ngFor="let user of userGroups | slice:0:3" [nzSrc]="user.profilePictureUrl"></nz-avatar>
+        <nz-avatar *ngIf="userGroups.length > 3">{{ userGroups.length - 3 }}</nz-avatar>
+      </nz-avatar-group>
+      
 
+
+      <div class="d-flex flex-column">
+        <div class="group-name">{{ group.name }}</div>
+        <small class="last-message">message</small>
+      </div>
+    </li>
   </ul>
 </div>
 

@@ -239,22 +239,7 @@
     }
   
     .group-content {
-      .group-search {
-        margin-bottom: 15px;
-  
-        input {
-          width: 100%;
-          padding: 8px 12px;
-          border-radius: 8px;
-          border: 1px solid #d9d9d9;
-          transition: border 0.3s;
-  
-          &:focus {
-            border-color: #1890ff;
-            outline: none;
-          }
-        }
-      }
+     
   
       .group-main {
         display: flex;

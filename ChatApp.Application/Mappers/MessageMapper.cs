@@ -10,24 +10,28 @@ namespace ChatApp.Application.Mappers
     {
         public static Message MessageAddDtoToEntity(MessageAddDto messageAddDto)
         {
-            return new Message
+            var message = new Message
             {
-                Content = messageAddDto.Content ?? string.Empty,
                 SenderId = messageAddDto.SenderId,
                 RecipientId = messageAddDto.RecipientId,
                 GroupId = messageAddDto.GroupId,
-                Type = GetMessageType(messageAddDto.Files),
-                Status = MessageStatus.Sent, 
-                SentAt = DateTime.UtcNow.AddHours(7),
+                Content = messageAddDto.Content ?? string.Empty,
+                Files = messageAddDto.Files.Select(f => new MessageFile { FileName = f.FileName }).ToList(),
+                Status = MessageStatus.Sent,
+                SentAt = DateTimeOffset.UtcNow,
             };
+
+            message.SetMessageType();
+            return message;
         }
         public static Message MessageUpdateDtoToEntity(MessageUpdateDto messageUpdateDto)
         {
             return new Message
             {
                 Id = messageUpdateDto.Id,
+                SenderId = messageUpdateDto.SenderId,
+                GroupId = messageUpdateDto.GroupId,
                 Content = messageUpdateDto.Content ?? string.Empty,
-                
                 Status = messageUpdateDto.Status,
                 SentAt = DateTimeOffset.UtcNow,
             };
@@ -45,6 +49,7 @@ namespace ChatApp.Application.Mappers
                 Type = message.Type,
                 SentAt = message.SentAt,
                 ReadAt = message.ReadAt,
+                IsDeleted = message.IsDeleted,
                 Files = message.Files.Select(MessageFileToMessageFileDto).ToList(),
             };
         }
@@ -54,35 +59,10 @@ namespace ChatApp.Application.Mappers
             {
                 Id = messageFile.Id,
                 Url = messageFile.Url ?? string.Empty,
+                
             };
 
         }
-        public static MessageType GetMessageType(List<IFormFile> files)
-        {
-            if (files == null || !files.Any())
-            {
-                return MessageType.Text;
-            }
-            foreach(var file in files)
-            {
-                if (file.ContentType.Contains("image"))
-                {
-                    return MessageType.Image;
-                }
-                if (file.ContentType.Contains("video"))
-                {
-                    return MessageType.Video;
-                }
-                if (file.ContentType.Contains("audio"))
-                {
-                    return MessageType.Audio;
-                }
-                if (file.ContentType.Contains("application"))
-                {
-                    return MessageType.File;
-                }
-            }
-            return MessageType.Text;
-        }
+       
     }
 }

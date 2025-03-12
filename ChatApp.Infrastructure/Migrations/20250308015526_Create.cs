@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ChatApp.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class create : Migration
+    public partial class Create : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -312,7 +312,10 @@ namespace ChatApp.Infrastructure.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     PublicId = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Url = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    MessageId = table.Column<int>(type: "int", nullable: false)
+                    MessageId = table.Column<int>(type: "int", nullable: false),
+                    FileType = table.Column<int>(type: "int", nullable: false),
+                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FileSize = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {

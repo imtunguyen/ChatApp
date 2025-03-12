@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, EventEmitter, inject, Output } from '@angular/core';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { User } from '../../../../core/models/user.module';
@@ -11,9 +11,10 @@ import { FriendShipService } from '../../../../core/services/friendship.service'
 import { ToastrService } from '../../../../shared/services/toastr.service';
 import { FriendShipStatus } from '../../../../core/models/enum/friendship-status';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { UserStatusService } from '../../../../core/services/user-status.service';
 import { SignalRService } from '../../../../core/services/signalr.service';
 import { Subscription } from 'rxjs';
+import { GroupService } from '../../../../core/services/group.service';
+import { Group } from '../../../../core/models/group.module';
 @Component({
   selector: 'app-chat-list',
   imports: [NzInputModule, FormsModule, CommonModule, NzAvatarModule, NzIconModule, NzModalModule, ReactiveFormsModule, NzCheckboxModule],
@@ -24,21 +25,25 @@ export class ChatListComponent {
   @Output() userSelected = new EventEmitter<any>();
   @Output() groupSelected = new EventEmitter<any>();
   users: User[] = [];
+  groups: Group[] = [];
   selectedUsers: any[] = [];
+  selectedUserIds: string[] = [];
   onlineUsers: string[] = [];
   currentUser: any;
+  userGroups: User[] = [];
 
   newMessageFrom: string | null = null;
   protected value = '';
   protected name = '';
   groupForm!: FormGroup;
+  isSelectedUser = false;
   isFriendVisible = false;
   isGroupVisible = false;
   friendShipStatus: { [userId: string]: FriendShipStatus } = {};
   selectedFiles: { src: string; file: File}[] = [];
   search: string = '';
   protected onModelChange(value: string): void {
-    this.value = value;
+    console.log("Value changed:", value);
     
   }
   private onlineUsersSubscription!: Subscription;
@@ -46,8 +51,8 @@ export class ChatListComponent {
 
   private authService = inject(AuthService);
   private friendShipService = inject(FriendShipService);
+  private groupService = inject(GroupService);
   private toastService = inject(ToastrService);
-  private userStatusService = inject(UserStatusService);
   private signalR = inject(SignalRService);
   constructor(private fb: FormBuilder, private cdr: ChangeDetectorRef) {
     this.currentUser = this.authService.getCurrentUser();
@@ -60,8 +65,8 @@ export class ChatListComponent {
     }
     this.loadUsers();
     this.loadFriendShipStatus();
-    this.groupForm = this.initializeForm();
-    //this.loadChatRooms();
+    this.groupForm = this.initializeGroupForm();
+    this.loadGroups();
 
     if (this.onlineUsersSubscription) {
       this.onlineUsersSubscription.unsubscribe();
@@ -85,10 +90,13 @@ export class ChatListComponent {
     }
   }
 
-  initializeForm() {
+  initializeGroupForm() {
     return this.fb.group({
-      name: [''],
-      users: ['']
+      
+      name: ['', Validators.required],
+      file: [null],
+      userIds: this.fb.array([]),
+      creatorId : this.currentUser.id
     });
   }
 
@@ -111,10 +119,35 @@ export class ChatListComponent {
 
   }
 
-  toggleUser(user: User, isChecked: boolean) {
-    if (isChecked) {
-      if (!this.selectedUsers.includes(user)) {
+  loadGroups() {
+    this.groupService.getGroupsByUser(this.currentUser.id).subscribe((groups) => {
+      console.log("Groups:", groups);
+      this.groups = groups;
+      groups.forEach((group) => {
+        this.loadUserGroups(group.id);
+      });
+    });
+  }
+
+  loadUserGroups(groupId : number) {
+    this.groupService.getUsersByGroup(groupId).subscribe({
+      next: (users) => {
+        console.log("UsersGroup:", users);
+        this.userGroups = Array.isArray(users) ? users : [];
+      },
+      error: (error) => {
+        console.log(error);
+      }
+    });
+  }
+
+
+  toggleUser(user: User) {
+    
+    if (user.isSelected) {
+      if (!this.selectedUsers.some(u => u.id === user.id)) {
         this.selectedUsers.push(user);
+        this.selectedUserIds.push(user.id);
       }
     } else {
       this.selectedUsers = this.selectedUsers.filter(u => u.id !== user.id);
@@ -166,6 +199,11 @@ export class ChatListComponent {
     this.userSelected.emit(user);
   }
 
+  selectGroup(group: any) {
+    console.log('Selected Group:', group);
+    this.groupSelected.emit(group);
+  }
+
   showAddGroupModal() {
     this.isGroupVisible = true;
   }
@@ -185,7 +223,22 @@ export class ChatListComponent {
   }
 
   addGroup() {
-    console.log('Add group:', this.groupForm.value);
+    const formData = new FormData();
+    formData.append('name', this.groupForm.value.name);
+    this.selectedUserIds.forEach((userId) => {
+      formData.append('userIds', userId);
+    });
+    formData.append('creatorId', this.currentUser.id);
+    console.log("Dữ liệu gửi lên API:", formData.get('name'), formData.get('userIds')); 
+    this.groupService.addGroup(formData).subscribe({
+      next: (response) => {
+        this.toastService.showSuccess('Tạo nhóm thành công');
+        //this.isGroupVisible = false;
+      },
+      error: (error) => {
+        console.error('Tạo nhóm thất bại', error);
+      },
+    });
   }
 
   cancelFriendRequest(userId: string): void {

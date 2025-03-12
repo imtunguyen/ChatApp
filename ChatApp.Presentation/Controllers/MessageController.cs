@@ -33,10 +33,10 @@ namespace ChatApp.Presentation.Controllers
             Response.AddPaginationHeader(messages);
             return Ok(messages);
         }
-        [HttpGet("GetMessagesChatRoom")]
-        public async Task<ActionResult<IEnumerable<MessageDto>>> GetMessagesChatRoom([FromQuery] MessageParams messageParams, int chatRoomId)
+        [HttpGet("GetMessagesGroup")]
+        public async Task<ActionResult<IEnumerable<MessageDto>>> GetMessagesGroup([FromQuery] MessageParams messageParams, int groupId)
         {
-            var messages = await _messageService.GetMessagesChatRoomAsync(messageParams, chatRoomId);
+            var messages = await _messageService.GetMessagesGroupAsync(messageParams, groupId);
             Response.AddPaginationHeader(messages);
             return Ok(messages);
         }
@@ -58,6 +58,13 @@ namespace ChatApp.Presentation.Controllers
         {
             var message = await _messageService.UpdateMessageAsync(messageDto);
             return Ok(message);
+        }
+
+        [HttpPut("Delete")]
+        public async Task<IActionResult> DeleteMessage(int id)
+        {
+            await _messageService.DeleteMessageAsync(m => m.Id == id);
+            return NoContent();
         }
 
     }

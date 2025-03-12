@@ -9,6 +9,7 @@ namespace ChatApp.Application.DTOs.Message
         public DateTimeOffset? ReadAt { get; set; }
         public MessageStatus Status { get; set; }
         public MessageType Type { get; set; }
+        public bool IsDeleted { get; set; }
         public List<MessageFileDto> Files { get; set; } = new List<MessageFileDto>();
 
     }

@@ -3,30 +3,42 @@
         [ngClass]="{ 'col-8' : isVisible, 'col-12' : !isVisible}">
       <!-- Chat Header -->
       <div class="chat-header p-3 d-flex justify-content-between align-items-center shadow-sm">
-        <div *ngIf="selectedUser">
-          <nz-avatar [nzSrc]="selectedUser.profilePictureUrl" nzSize="large" class="me-2"></nz-avatar>
-          {{ selectedUser.fullName }}
-        </div>
-        <div *ngIf="!selectedUser" class="text-muted">
-          <p>Please select a user to start chatting.</p>
-        </div>
+        @if(selectedUser){
+          <div>
+            <nz-avatar [nzSrc]="selectedUser.profilePictureUrl" nzSize="large" class="me-2"></nz-avatar>
+            {{ selectedUser.fullName }}
+          </div>
+        }@else if (selectedGroup) {
+          <div>
+            <nz-avatar nzIcon="user" nzSize="large" class="me-2"></nz-avatar>
+            {{ selectedGroup.name }}
+          </div>
+        }@else {
+          <div class="text-muted">
+            <p>Please select a user to start chatting.</p>
+          </div>
+        }
   
         <div>
           
           <button nz-button nzType="default" nzShape="circle" (click)="toggleVideoCall()">
             <i nz-icon nzType="video-camera"></i>
           </button>
-          <button nz-button nzType="default" nzShape="circle">
+          <button nz-button nzType="default" nzShape="circle" (click)="toggleSearch()">
             <i nz-icon nzType="search"></i>
           </button>
           <button nz-button nzType="default" nzShape="circle" (click)="toggleChatDetail()">
             <i nz-icon nzType="unordered-list"></i>
           </button>
+         
         </div>
       </div>
+      <input *ngIf="isSearching" type="text" class="search-input" placeholder="Search..." [(ngModel)]="searchText" 
+      (ngModelChange)="onSearchChange()" #searchBox (blur)="hideSearch()" />
   
       <!-- Chat Messages -->
       <div class="chat-messages flex-grow-1 p-3 overflow-auto" #messageContainer (scroll)="onScroll()">
+        
         <div *ngIf="messages.length === 0" class="text-center text-muted">
           <nz-icon nzType="message" nzTheme="outline" style="font-size: 24px;"></nz-icon>
           <p>No messages yet</p>
@@ -34,15 +46,15 @@
         <div *ngFor="let message of messages" class="mb-3">
           <div [class]="message.senderId === currentUser.id ? 'text-end' : 'text-start'">
             <nz-avatar
-              *ngIf="selectedUser && message.senderId !== currentUser.id; else ChatRoom"
+              *ngIf="selectedUser && message.senderId !== currentUser.id; else group"
               [nzSrc]="selectedUser.profilePictureUrl"
               nzSize="small"
               class="me-2"
             ></nz-avatar>
-            <ng-template #ChatRoom>
-              <div *ngIf="selectedChatRoom && message.senderId !== currentUser.id">
-                <nz-avatar [nzSrc]="avatars[message.senderId]" nzSize="small" class="me-2"></nz-avatar>
-              </div>
+            <ng-template #group>
+              <nz-avatar *ngIf="selectedGroup && message.senderId !== currentUser.id"
+                 [nzSrc]="avatars[message.senderId]" nzSize="small" class="me-2">
+              </nz-avatar>
             </ng-template>
   
             <div class="p-2 bg-light rounded-3 d-inline-block max-w-75">
@@ -57,8 +69,8 @@
             </div>
             <div>
               <i class="bi bi-emoji-smile"></i>
-              <i class="bi bi-three-dots-vertical"></i>
-              <i class="bi bi-reply-fill"></i>
+              <i class="bi bi-three-dots-vertical" (click)="updateMessage(message)"></i>
+              <i class="bi bi-reply-fill" (click)="deleteMessage(message.id)"></i>
             </div>
           </div>
         </div>
@@ -91,8 +103,13 @@
             <button nz-button nzType="danger" (click)="audioUrl = null">X</button>
         </div>
       </div>
-      <div class="chat-input p-3 d-flex align-items-center border-top" *ngIf="selectedUser">
-        <div>
+      <div *ngIf="isEditing" class="text-warning">
+          Đang chỉnh sửa tin nhắn...
+          <button class="close-button" (click)="isEditing = false">X</button>
+
+      </div>
+      <div class="chat-input p-3 d-flex align-items-center border-top" *ngIf="selectedUser || selectedGroup">
+        <div> 
           <button nz-button nzType="default" nzShape="circle" (mousedown)="startRecording()" (mouseup)="stopRecording()">
             <i nz-icon nzType="audio"></i>
           </button>
@@ -118,7 +135,8 @@
         />
   
         <!-- Nút gửi tin nhắn -->
-        <button nz-button nzType="primary" (click)="sendMessage()" class="ms-2">
+         
+        <button nz-button nzType="primary" [disabled]="isEditing && newMessage === originalMessage" (click)="sendMessage()" class="ms-2">
           <i nz-icon nzType="send"></i>
         </button>
       </div>
@@ -137,7 +155,18 @@
       <ul>
         <li *ngFor="let file of selectedUser?.files">{{ file }}</li>
       </ul>
+      <div *ngIf="selectedGroup">
+        <h6>Members</h6>
+        <ul>
+          <li *ngFor="let member of userGroups">
+            <nz-avatar [nzSrc]="member.profilePictureUrl" nzSize="small" class="me-2"></nz-avatar>
+            {{ member.fullName }}
+          </li>
+        </ul>
+
+      </div>
     </div>
+
   </div>
   <app-video-call *ngIf="isVideoCallVisible"></app-video-call>
   <!-- <app-add-group></app-add-group> -->

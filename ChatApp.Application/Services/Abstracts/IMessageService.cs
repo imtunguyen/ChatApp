@@ -14,7 +14,7 @@ namespace ChatApp.Application.Services.Abstracts
         Task<MessageDto?> GetLastMessageAsync(string senderId, string recipientId);
         Task<PagedList<MessageDto>> GetMessagesThreadAsync(MessageParams messageParams, string senderId, string recipientId);
         Task<MessageDto> GetMessageByIdAsync(int id);
-        Task<PagedList<MessageDto>> GetMessagesChatRoomAsync(MessageParams messageParams, int chatRoomId); //ChatRoom
+        Task<PagedList<MessageDto>> GetMessagesGroupAsync(MessageParams messageParams, int groupId); 
         Task<PagedList<MessageDto>> GetAllAsync(MessageParams messageParams, bool tracked);
 
         Task<bool> MarkMessageAsReadAsync(int messageId);

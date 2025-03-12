@@ -251,6 +251,16 @@ namespace ChatApp.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("FileType")
+                        .HasColumnType("int");
+
                     b.Property<int>("MessageId")
                         .HasColumnType("int");
 

@@ -43,7 +43,7 @@ export class RegisterPageComponent implements OnInit {
         gender: ['', Validators.required],
         password: ['', Validators.required],
         confirmPassword: ['', Validators.required],
-        profilePicture: ['', Validators.required],
+        profilePicture: [''],
       },
       { validator: this.checkPasswords }
     );

@@ -65,6 +65,11 @@ $light-bg: #ffffff;
       color: #aaa;
       margin-top: 50px;
     }
+    .highlight-message {
+      background-color: yellow; /* Làm nổi bật tin nhắn */
+      font-weight: bold;
+    }
+    
 
     .text-end,
     .text-start {
@@ -159,6 +164,7 @@ $light-bg: #ffffff;
       i {
         font-size: 1.25rem;
       }
+      
     }
   }
 

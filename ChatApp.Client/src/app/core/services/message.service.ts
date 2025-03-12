@@ -1,19 +1,19 @@
 import { Injectable } from "@angular/core";
 
-import { map } from "rxjs";
+import { map, Observable } from "rxjs";
 import { send } from "process";
 import { environment } from "../../../environments/environment";
-import { PaginationResult } from "../../shared/models/pagination.module";
 import { Message } from "../models/message.module";
-import { HttpClient, HttpParams } from "@angular/common/http";
+import { HttpClient, HttpParams, HttpResponse } from "@angular/common/http";
 import { MessageParams } from "../../shared/params/messageParams";
+import { PaginatedResult } from "../../shared/models/pagination.module";
 
 @Injectable({
   providedIn: 'root'
 })
 export class MessageService {
   private apiUrl = `${environment.apiUrl}message`;
-  private paginationResult: PaginationResult<Message[]> = {  };
+  private paginatedResult: PaginatedResult<Message[]> = {  };
   constructor(private http: HttpClient) { }
 
   //add message
@@ -21,51 +21,70 @@ export class MessageService {
     return this.http.post(`${this.apiUrl}/add`, message);
   }
 
-  getMessagesThread(messageParams: MessageParams, senderId: string, recipientId: string) {
-    let params = new HttpParams()
-    if(messageParams.pageNumber) params.append('pageNumber', messageParams.pageNumber.toString());
-    if(messageParams.pageSize) params.append('pageSize', messageParams.pageSize.toString())
-    if(messageParams.orderBy) params.append('orderBy', messageParams.orderBy);
-    if (messageParams.search) params = params.append('search', messageParams.search);
-    
-    return this.http.get<PaginationResult<Message[]>>(
-      `${this.apiUrl}/GetMessagesThread?senderId=${senderId}&recipientId=${recipientId}`,
-      { observe: 'response', params }
-    ).pipe(
-      map(response => {
-        // Kiểm tra và trả về dữ liệu
-        this.paginationResult.result = response.body as Message[];
-        const pagination = response.headers.get('Pagination');
-          if (pagination !== null) {
-            this.paginationResult.pagination = JSON.parse(pagination);
-          }
-          return this.paginationResult;
+  //updateMessage\
+  updateMessage(message: any) {
+    return this.http.put(`${this.apiUrl}/update`, message);
+  }
+
+  deleteMessage(id: number) {
+    return this.http.put(`${this.apiUrl}/delete?id=${id}`, null);
+  }
+
+  getMessagesThread(params: any, senderId: string, recipientId: string): Observable<PaginatedResult<Message[]>> {
+    let httpParams = new HttpParams();
+    if (params.pageNumber) {
+      httpParams = httpParams.set('PageNumber', params.pageNumber.toString());
+    }
+    if (params.pageSize) {
+      httpParams = httpParams.set('PageSize', params.pageSize.toString());
+    }
+    if (params.search) {
+      httpParams = httpParams.set('Search', params.search);
+    }
+    return this.http.get<Message[]>(`${this.apiUrl}/GetMessagesThread?senderId=${senderId}&recipientId=${recipientId}`, {
+      params: httpParams,
+      observe: 'response'
+    }).pipe(
+      map((response: HttpResponse<Message[]>) => {
+        const paginatedResult = new PaginatedResult<Message[]>();
+        paginatedResult.items = response.body || [];
+
+        const paginationHeader = response.headers.get('Pagination');
+        if (paginationHeader) {
+          paginatedResult.pagination = JSON.parse(paginationHeader);
+        }
+
+        return paginatedResult;
       })
     );
   }
 
-  getMessagesChatRoom(messageParams: MessageParams, chatRoomId: number) {
-    let params = new HttpParams()
-      params.append('pageNumber', messageParams.pageNumber.toString());
-      params.append('pageSize', messageParams.pageSize.toString())
-      params.append('orderBy', messageParams.orderBy);
-
-    if (messageParams.search) {
-      params = params.append('search', messageParams.search);
+  getMessagesGroup(params: any, groupId: number): Observable<PaginatedResult<Message[]>> {
+    let httpParams = new HttpParams();
+    if (params.pageNumber) {
+      httpParams = httpParams.set('PageNumber', params.pageNumber.toString());
     }
-
-    return this.http.get<PaginationResult<Message[]>>(
-      `${this.apiUrl}/GetMessagesChatRoom?chatRoomId=${chatRoomId}`,
-      { observe: 'response', params }
+    if (params.pageSize) {
+      httpParams = httpParams.set('PageSize', params.pageSize.toString());
+    }
+    if (params.search) {
+      httpParams = httpParams.set('Search', params.search);
+    }
+    return this.http.get<Message[]>(
+      `${this.apiUrl}/GetMessagesgroup?groupId=${groupId}`,
+      { params: httpParams,
+        observe: 'response' }
     ).pipe(
-      map(response => {
-        // Kiểm tra và trả về dữ liệu
-        this.paginationResult.result = response.body as Message[];
-        const pagination = response.headers.get('Pagination');
-          if (pagination !== null) {
-            this.paginationResult.pagination = JSON.parse(pagination);
-          }
-          return this.paginationResult;
+      map((response: HttpResponse<Message[]>) => {
+        const paginatedResult = new PaginatedResult<Message[]>();
+        paginatedResult.items = response.body || [];
+
+        const paginationHeader = response.headers.get('Pagination');
+        if (paginationHeader) {
+          paginatedResult.pagination = JSON.parse(paginationHeader);
+        }
+
+        return paginatedResult;
       })
     );
   }

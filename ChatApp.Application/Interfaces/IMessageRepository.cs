@@ -11,7 +11,7 @@ namespace ChatApp.Application.Interfaces
         Task<IEnumerable<Message>> GetMessagesByUser(string userId);
         Task<Message> GetMessageByIdAsync(int id);
         Task<PagedList<Message>> GetMessagesThreadAsync(MessageParams baseParams, string senderId, string recipientId);
-        Task<PagedList<Message>> GetMessagesChatRoomAsync(MessageParams messageParams, int chatRoomId);
+        Task<PagedList<Message>> GetMessagesGroupAsync(MessageParams messageParams, int groupId);
         Task<Message?> GetLastMessageAsync(string senderId, string recipientId);
         Task<PagedList<Message>> GetAllAsync(MessageParams baseParams, bool tracked = false);
     }

@@ -1,5 +1,5 @@
 <div class="d-flex">
-    <app-chat-list class="col-3" (userSelected)="onUserSelected($event)" (chatRoomSelected)="onGroupSelected($event)" ></app-chat-list>
-    <app-chat-box class="col-9" [selectedUser]="selectedUser" ></app-chat-box>
+    <app-chat-list class="col-3" (userSelected)="onUserSelected($event)" (groupSelected)="onGroupSelected($event)" ></app-chat-list>
+    <app-chat-box class="col-9" [selectedUser]="selectedUser" [selectedGroup]="selectedGroup"></app-chat-box>
 </div>
     

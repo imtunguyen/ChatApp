@@ -16,4 +16,8 @@ export class GroupService {
   getGroupsByUser(userId: string){
     return this.api.get<Group[]>('group/get?userId='+ userId);
   }
+
+  getUsersByGroup(groupId: number){
+    return this.api.get<Group>('usergroup/get?groupId='+ groupId);
+  }
 }

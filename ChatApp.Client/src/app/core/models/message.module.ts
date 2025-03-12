@@ -10,10 +10,12 @@ export interface Message{
   content: string;
   senderId: string;
   recepientId?: string;
-  chatRoomId?: number;
+  groupId?: number;
   sentAt: Date;
   updatedAt: Date;
   status: string;
+  isDeleted: boolean;
   type: MessageType;
   files: File[];
+
 }

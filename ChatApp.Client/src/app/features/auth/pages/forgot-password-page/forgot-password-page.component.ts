@@ -5,6 +5,7 @@ import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzFormModule } from 'ng-zorro-antd/form';
 import { ToastrService } from '../../../../shared/services/toastr.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-forgot-password-page',
@@ -17,7 +18,7 @@ export class ForgotPasswordPageComponent {
 
   private toastrService = inject(ToastrService);
   private authService = inject(AuthService);
-  constructor() {}
+  constructor(private router: Router) {}
 
   onForgotPassword() {
     if(this.email.trim() == ''){
@@ -33,5 +34,8 @@ export class ForgotPasswordPageComponent {
         this.toastrService.showError('Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại email');
       },
     });
+  }
+  navigateToLogin() {
+    this.router.navigate(['/login']);
   }
 }

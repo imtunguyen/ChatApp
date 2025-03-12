@@ -124,7 +124,7 @@ namespace ChatApp.Presentation.Controllers
             }
 
             var avatarUrl = dto.ProfilePicture != null && dto.ProfilePicture.Length > 0
-                ? (await _cloudinaryService.UploadPhotoAsync(dto.ProfilePicture)).Url
+                ? (await _cloudinaryService.UploadAsync(dto.ProfilePicture)).Url
                 : @"https://res.cloudinary.com/dlhwuvhhp/image/upload/v1734098200/user_rvnqoh.png";
 
             var user = new AppUser
@@ -257,7 +257,7 @@ namespace ChatApp.Presentation.Controllers
             {
                 try
                 {
-                    userEntity.ProfilePictureUrl = (await _cloudinaryService.UploadPhotoAsync(user.ProfilePicture)).Url;
+                    userEntity.ProfilePictureUrl = (await _cloudinaryService.UploadAsync(user.ProfilePicture)).Url;
                 }
                 catch (Exception ex)
                 {

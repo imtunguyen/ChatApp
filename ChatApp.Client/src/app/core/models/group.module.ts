@@ -1,4 +1,5 @@
 export interface Group {
+  file: string;
   id: number;
   name: string;
   creator: string;

@@ -25,23 +25,31 @@ namespace ChatApp.Application.Services.Implementations
         public async Task<MessageDto> AddMessageAsync(MessageAddDto messageAddDto)
         {
             var message = MessageMapper.MessageAddDtoToEntity(messageAddDto);
-            if (messageAddDto.Files != null)
+
+            if (messageAddDto.Files?.Any() == true)
             {
-                foreach (var file in messageAddDto.Files)
+                var uploadTasks = messageAddDto.Files.Select(file =>
                 {
-                    var uploadResult = await _cloudinaryService.UploadFileAsync(file);
-                    message.Files.Add(new MessageFile
+                    return _cloudinaryService.UploadAsync(file);
+                });
+
+
+                var uploadResults = await Task.WhenAll(uploadTasks);
+
+                // Thêm file vào message (loại bỏ file lỗi)
+                message.Files.AddRange(uploadResults
+                    .Where(result => result.Error == null)
+                    .Select(result => new MessageFile
                     {
-                        Url = uploadResult.Url!.ToString(),
-                        PublicId = uploadResult.PublicId
-                    });
-                }
+                        Url = result.Url!,
+                        PublicId = result.PublicId
+                    }));
             }
             await _unitOfWork.MessageRepository.AddAsync(message);
             return await _unitOfWork.CompleteAsync()
                 ? MessageMapper.EntityToMessageDto(message)
                 : throw new BadRequestException("Lỗi khi tạo tin nhắn");
-
+             
         }
         //Update Message
 
@@ -126,9 +134,9 @@ namespace ChatApp.Application.Services.Implementations
             throw new NotImplementedException();
         }
 
-        public async Task<PagedList<MessageDto>> GetMessagesChatRoomAsync(MessageParams messageParams, int chatRoomId)
+        public async Task<PagedList<MessageDto>> GetMessagesGroupAsync(MessageParams messageParams, int groupId)
         {
-            var messages = await _unitOfWork.MessageRepository.GetMessagesChatRoomAsync(messageParams, chatRoomId);
+            var messages = await _unitOfWork.MessageRepository.GetMessagesGroupAsync(messageParams, groupId);
             if (messages == null)
             {
                 throw new NotFoundException("Không tìm thấy tin nhắn");

@@ -13,10 +13,12 @@ export class ChatPageComponent {
   selectedGroup: any;
   
   onUserSelected(user: any) {
+    this.selectedGroup = null;
     this.selectedUser = user;
   }
 
   onGroupSelected(group: any) {
+    this.selectedUser = null;
     this.selectedGroup = group;
   }
   

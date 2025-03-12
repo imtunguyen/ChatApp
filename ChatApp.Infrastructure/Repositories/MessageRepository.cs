@@ -65,7 +65,8 @@ namespace ChatApp.Infrastructure.Repositories
             var query = _context.Messages
                 .Include(m => m.Files)
                 .Where(m => (m.SenderId == senderId && m.RecipientId == recipientId)
-                    || (m.SenderId == recipientId && m.RecipientId == senderId))
+                    || (m.SenderId == recipientId && m.RecipientId == senderId) && m.IsDeleted == false)
+                .OrderByDescending(m => m.SentAt)
                 .AsQueryable();
             if (!string.IsNullOrEmpty(messageParams.Search))
             {
@@ -75,11 +76,12 @@ namespace ChatApp.Infrastructure.Repositories
             
             return await query.ApplyPaginationAsync(messageParams.PageNumber, messageParams.PageSize);                                      
         }
-        public async Task<PagedList<Message>> GetMessagesChatRoomAsync(MessageParams messageParams, int groupId)
+        public async Task<PagedList<Message>> GetMessagesGroupAsync(MessageParams messageParams, int groupId)
         {
             var query = _context.Messages
                 .Include(m => m.Files)
                 .Where(m => m.GroupId == groupId)
+                .OrderByDescending(m => m.SentAt)
                 .AsQueryable(); 
             if (!string.IsNullOrEmpty(messageParams.Search))
             {
