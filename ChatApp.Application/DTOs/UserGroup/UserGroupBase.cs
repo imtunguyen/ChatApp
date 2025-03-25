@@ -4,7 +4,8 @@
     {
         public required string UserId { get; set; }
         public int GroupId { get; set; }
-        
+        public string? RoleId { get; set; }
+        public bool IsRemoved { get; set; }    
 
     }
 }

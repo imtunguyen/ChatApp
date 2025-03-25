@@ -16,6 +16,7 @@ namespace ChatApp.Application.Mappers
                 Email = user.Email,  
                 Gender = user.Gender.ToString(),
                 ProfilePictureUrl = user.ProfilePictureUrl, 
+                
             };
         }
     }

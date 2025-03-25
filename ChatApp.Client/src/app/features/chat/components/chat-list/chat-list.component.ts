@@ -15,6 +15,7 @@ import { SignalRService } from '../../../../core/services/signalr.service';
 import { Subscription } from 'rxjs';
 import { GroupService } from '../../../../core/services/group.service';
 import { Group } from '../../../../core/models/group.module';
+import { FriendShip } from '../../../../core/models/friendship.module';
 @Component({
   selector: 'app-chat-list',
   imports: [NzInputModule, FormsModule, CommonModule, NzAvatarModule, NzIconModule, NzModalModule, ReactiveFormsModule, NzCheckboxModule],
@@ -31,7 +32,10 @@ export class ChatListComponent {
   onlineUsers: string[] = [];
   currentUser: any;
   userGroups: User[] = [];
-
+  friendsList: User[] = [];
+  filteredFriendsList: User[] = [];
+  filteredGroups: Group[] = [];
+ 
   newMessageFrom: string | null = null;
   protected value = '';
   protected name = '';
@@ -40,7 +44,10 @@ export class ChatListComponent {
   isFriendVisible = false;
   isGroupVisible = false;
   friendShipStatus: { [userId: string]: FriendShipStatus } = {};
-  selectedFiles: { src: string; file: File}[] = [];
+  selectedFile: File | null = null;
+  previewImage: string | ArrayBuffer | null = null;
+  searchText: string = '';
+ 
   search: string = '';
   protected onModelChange(value: string): void {
     console.log("Value changed:", value);
@@ -64,9 +71,16 @@ export class ChatListComponent {
       return;
     }
     this.loadUsers();
+    this.loadFriends();
+    
+
+  
     this.loadFriendShipStatus();
     this.groupForm = this.initializeGroupForm();
     this.loadGroups();
+    this.groupService.groupUpdate.subscribe(() => {
+      this.loadGroups();
+    });
 
     if (this.onlineUsersSubscription) {
       this.onlineUsersSubscription.unsubscribe();
@@ -94,7 +108,7 @@ export class ChatListComponent {
     return this.fb.group({
       
       name: ['', Validators.required],
-      file: [null],
+      avatarUrl: [null],
       userIds: this.fb.array([]),
       creatorId : this.currentUser.id
     });
@@ -115,14 +129,41 @@ export class ChatListComponent {
   loadUsers() {
     this.authService.getUsers().subscribe((users) => {
       this.users = users.filter((user) => user.id !== this.currentUser.id);
+   
     });
 
   }
+
+  loadFriends() {
+      this.friendShipService.getFriends(this.currentUser.id).subscribe(
+        (res: FriendShip[]) => {
+          res.forEach(friendship => {
+            if (friendship.requesterId === this.currentUser.id) {
+              this.authService.getUserById(friendship.addresseeId).subscribe(
+                (user: User) => {
+                  this.friendsList.push(user);
+                  this.filteredFriendsList = [...this.friendsList];
+                }
+              );
+            } else {
+              this.authService.getUserById(friendship.requesterId).subscribe(
+                (user: User) => {
+                  this.friendsList.push(user);
+                  this.filteredFriendsList = [...this.friendsList];
+                }
+              );
+            }
+          });
+        }
+      );
+        
+    }
 
   loadGroups() {
     this.groupService.getGroupsByUser(this.currentUser.id).subscribe((groups) => {
       console.log("Groups:", groups);
       this.groups = groups;
+      this.filteredGroups = [...this.groups];
       groups.forEach((group) => {
         this.loadUserGroups(group.id);
       });
@@ -154,25 +195,16 @@ export class ChatListComponent {
     }
   }
 
-  onFileSelected(event: any) {
-    const files: FileList = event.target.files;
-    const newFiles: { src: string; file: File}[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.selectedFile = input.files[0];
+  
       const reader = new FileReader();
-      reader.onload = (e: any) => {
-          newFiles.push({
-            src: e.target.result,
-            file,
-          });
-
-        if (i === files.length - 1) {
-          this.selectedFiles = [...this.selectedFiles, ...newFiles];
-        }
+      reader.onload = (e) => {
+        this.previewImage = e.target?.result ?? null;
       };
-      reader.readAsDataURL(file);
-
+      reader.readAsDataURL(this.selectedFile);
     }
   }
 
@@ -207,6 +239,15 @@ export class ChatListComponent {
   showAddGroupModal() {
     this.isGroupVisible = true;
   }
+  onSearchChange() {
+    if(!this.searchText) {
+      this.filteredFriendsList = [...this.friendsList];
+      this.filteredGroups = [...this.groups];
+    } else {
+      this.filteredFriendsList = this.friendsList.filter((user) => user.fullName.toLowerCase().includes(this.searchText.toLowerCase()));
+      this.filteredGroups = this.groups.filter((group) => group.name.toLowerCase().includes(this.searchText.toLowerCase()));
+    }
+  }
 
   addFriend(userId: string) {
     console.log('Add friend:', userId);
@@ -228,8 +269,8 @@ export class ChatListComponent {
     this.selectedUserIds.forEach((userId) => {
       formData.append('userIds', userId);
     });
+    formData.append('avatarUrl', this.selectedFile as Blob);
     formData.append('creatorId', this.currentUser.id);
-    console.log("Dữ liệu gửi lên API:", formData.get('name'), formData.get('userIds')); 
     this.groupService.addGroup(formData).subscribe({
       next: (response) => {
         this.toastService.showSuccess('Tạo nhóm thành công');

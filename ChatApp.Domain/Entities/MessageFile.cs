@@ -10,7 +10,7 @@ namespace ChatApp.Domain.Entities
         public int MessageId { get; set; }
         public Message? Message { get; set; }
         public FileType FileType { get; set; }
-        public string FileName { get; set; }
+        public string? FileName { get; set; }
         public long FileSize { get; set; }
     }
 }

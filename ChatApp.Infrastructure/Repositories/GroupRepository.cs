@@ -16,7 +16,7 @@ namespace ChatApp.Infrastructure.Repositories
         {
             var Groups = await _context.UserGroups
                 .Include(uc => uc.Group)
-                .Where(uc => uc.UserId == userId)
+                .Where(uc => uc.UserId == userId && uc.IsRemoved == false)
                 .Select(uc => uc.Group!)
                 .ToListAsync();
             return Groups;

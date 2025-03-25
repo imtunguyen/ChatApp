@@ -9,8 +9,6 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { GENDER_LIST } from '../../../core/models/enum/gender';
-import { profile } from 'console';
-import { User } from '../../../core/models/user.module';
 import { ToastrService } from '../../services/toastr.service';
 @Component({
   selector: 'app-sidebar-nav',

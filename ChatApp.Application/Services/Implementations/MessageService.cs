@@ -33,23 +33,23 @@ namespace ChatApp.Application.Services.Implementations
                     return _cloudinaryService.UploadAsync(file);
                 });
 
-
                 var uploadResults = await Task.WhenAll(uploadTasks);
 
-                // Thêm file vào message (loại bỏ file lỗi)
-                message.Files.AddRange(uploadResults
-                    .Where(result => result.Error == null)
-                    .Select(result => new MessageFile
-                    {
-                        Url = result.Url!,
-                        PublicId = result.PublicId
-                    }));
+                var messageFiles = uploadResults.Select(result => new MessageFile
+                {
+                    PublicId = result.PublicId,
+                    Url = result.Url,
+                    FileName = result.FileName,
+                    FileSize = result.FileSize,
+                    FileType = result.FileType
+                }).ToList();
+
+                message.Files.AddRange(messageFiles);
             }
             await _unitOfWork.MessageRepository.AddAsync(message);
             return await _unitOfWork.CompleteAsync()
                 ? MessageMapper.EntityToMessageDto(message)
                 : throw new BadRequestException("Lỗi khi tạo tin nhắn");
-             
         }
         //Update Message
 

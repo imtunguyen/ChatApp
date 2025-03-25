@@ -1,5 +1,5 @@
 export interface Group {
-  file: string;
+  avatarUrl: string;
   id: number;
   name: string;
   creator: string;

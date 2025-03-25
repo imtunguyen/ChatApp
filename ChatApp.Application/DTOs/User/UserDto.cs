@@ -10,5 +10,8 @@ namespace ChatApp.Application.DTOs.User
         public string? ProfilePictureUrl { get; set; }
         public string? Gender { get; set; }
         public string? Token { get; set; }
+        public string? RoleId { get; set; }
+        public DateTimeOffset? RemovedAt { get; set; }
+        public bool IsRemoved { get; set; }
     }
 }

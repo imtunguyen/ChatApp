@@ -59,20 +59,6 @@ namespace ChatApp.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "GroupFile",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PublicId = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Url = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_GroupFile", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {
@@ -217,6 +203,7 @@ namespace ChatApp.Infrastructure.Migrations
                     CreatorId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
+                    AvatarUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     FileId = table.Column<int>(type: "int", nullable: true)
                 },
@@ -229,11 +216,6 @@ namespace ChatApp.Infrastructure.Migrations
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Groups_GroupFile_FileId",
-                        column: x => x.FileId,
-                        principalTable: "GroupFile",
-                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -278,6 +260,7 @@ namespace ChatApp.Infrastructure.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     GroupId = table.Column<int>(type: "int", nullable: false),
+                    RoleId = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     JoinedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     RemovedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     AppUserId = table.Column<string>(type: "nvarchar(450)", nullable: true)
@@ -285,6 +268,11 @@ namespace ChatApp.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_UserGroups", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserGroups_AspNetRoles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "AspNetRoles",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_UserGroups_AspNetUsers_AppUserId",
                         column: x => x.AppUserId,
@@ -314,7 +302,7 @@ namespace ChatApp.Infrastructure.Migrations
                     Url = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     MessageId = table.Column<int>(type: "int", nullable: false),
                     FileType = table.Column<int>(type: "int", nullable: false),
-                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     FileSize = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
@@ -462,14 +450,38 @@ namespace ChatApp.Infrastructure.Migrations
                 column: "GroupId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserGroups_RoleId",
+                table: "UserGroups",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserGroups_UserId",
                 table: "UserGroups",
                 column: "UserId");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Groups_MessageFile_FileId",
+                table: "Groups",
+                column: "FileId",
+                principalTable: "MessageFile",
+                principalColumn: "Id");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_Groups_AspNetUsers_CreatorId",
+                table: "Groups");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Messages_AspNetUsers_SenderId",
+                table: "Messages");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Groups_MessageFile_FileId",
+                table: "Groups");
+
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
 
@@ -489,9 +501,6 @@ namespace ChatApp.Infrastructure.Migrations
                 name: "FriendShips");
 
             migrationBuilder.DropTable(
-                name: "MessageFile");
-
-            migrationBuilder.DropTable(
                 name: "Notifications");
 
             migrationBuilder.DropTable(
@@ -501,16 +510,16 @@ namespace ChatApp.Infrastructure.Migrations
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
+                name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "MessageFile");
+
+            migrationBuilder.DropTable(
                 name: "Messages");
 
             migrationBuilder.DropTable(
                 name: "Groups");
-
-            migrationBuilder.DropTable(
-                name: "AspNetUsers");
-
-            migrationBuilder.DropTable(
-                name: "GroupFile");
         }
     }
 }

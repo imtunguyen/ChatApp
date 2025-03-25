@@ -3,7 +3,7 @@
   <div class="p-3 row align-items-center chat-header">
     <div class="col-9">
       <nz-input-group [nzSuffix]="suffixIconSearch" class="search-input">
-        <input type="text" nz-input placeholder="Search user..." />
+        <input type="text" [(ngModel)]="searchText" (ngModelChange)="onSearchChange()" nz-input placeholder="Search user or group..." />
       </nz-input-group>
       <ng-template #suffixIconSearch>
         <nz-icon nzType="search" />
@@ -60,6 +60,7 @@
                 <div class="group-header">
                   <label class="camera-btn">
                     <nz-icon nzType="camera" nzTheme="outline"></nz-icon>
+                    <img [src]="previewImage" class="avatar" alt="Avatar"  />
                     <input type="file" formControlName="file" (change)="onFileSelected($event)" accept="image/*"
                       style="display: none;" />
                   </label>
@@ -129,9 +130,9 @@
     -->
 
   <!-- Danh sách người dùng và phòng chat -->
-  <ul class="list-group list-group-flush chat-list-items">
+  <ul class="list-group list-group-flush chat-list-items" style="overflow-y: auto; height: calc(100vh - 200px);">
     <!-- Danh sách người dùng -->
-    <li *ngFor="let user of users" class="list-group-item d-flex align-items-center py-3 px-4 chat-user-item"
+    <li *ngFor="let user of filteredFriendsList" class="list-group-item d-flex align-items-center py-3 px-4 chat-user-item"
       (click)="selectUser(user)">
       <nz-avatar [nzSrc]="user.profilePictureUrl" nzSize="large" class="user-avatar" [class.online]="user.isOnline"
         [class.offline]="!user.isOnline"></nz-avatar>
@@ -143,11 +144,10 @@
     </li>
 
     <!-- Danh sách phòng chat -->
-    <li *ngFor="let group of groups" class="list-group-item d-flex align-items-center py-3 px-4 "
+    <li *ngFor="let group of filteredGroups" class="list-group-item d-flex align-items-center py-3 px-4 "
       (click)="selectGroup(group)">
       <nz-avatar-group>
-        <nz-avatar *ngFor="let user of userGroups | slice:0:3" [nzSrc]="user.profilePictureUrl"></nz-avatar>
-        <nz-avatar *ngIf="userGroups.length > 3">{{ userGroups.length - 3 }}</nz-avatar>
+        <nz-avatar [nzSrc]="group.avatarUrl" nzSize="large" class="user-avatar"></nz-avatar>
       </nz-avatar-group>
       
 

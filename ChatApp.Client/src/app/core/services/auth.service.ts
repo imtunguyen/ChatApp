@@ -6,6 +6,7 @@ import { StorageService } from '../../shared/services/storage.service';
 import { ApiService } from '../../shared/services/api.service';
 import { LoginResponse, UserDto } from '../models/login-response.dto';
 import { SignalRService } from './signalr.service';
+import { Role } from '../models/role.module';
 
 @Injectable({
   providedIn: 'root'
@@ -29,7 +30,12 @@ export class AuthService {
         }
     }
     return null;
-}
+  }
+  getToken(): string | null {
+    const token = localStorage.getItem('accessToken'); // Kiểm tra nếu lưu trong localStorage
+    console.log("Token hiện tại:", token);
+    return token;
+  }
 
 
   getUsers() {
@@ -86,4 +92,7 @@ export class AuthService {
     return this.api.post(`auth/ResetPassword`, data);
   }
   
+  getRoles() {
+    return this.api.get<Role[]>('auth/Roles'); 
+  }
 }

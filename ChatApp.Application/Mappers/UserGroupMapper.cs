@@ -12,7 +12,8 @@ namespace ChatApp.Application.Mappers
                 UserId = userGroupAddDto.UserId,
                 GroupId = userGroupAddDto.GroupId,
                 JoinedAt = DateTimeOffset.UtcNow,
-
+                RoleId = userGroupAddDto.RoleId,
+                IsRemoved = false
             };
         }
         public static UserGroup UpdateDtoToEntity(UserGroupUpdateDto userGroupUpdateDto)
@@ -22,7 +23,8 @@ namespace ChatApp.Application.Mappers
                 UserId = userGroupUpdateDto.UserId,
                 GroupId = userGroupUpdateDto.GroupId,
                 RemovedAt = DateTimeOffset.UtcNow,
-
+                RoleId = userGroupUpdateDto.RoleId,
+                IsRemoved = userGroupUpdateDto.IsRemoved
             };
         }
         public static UserGroupDto EntityToDto(UserGroup userGroup)
@@ -33,6 +35,8 @@ namespace ChatApp.Application.Mappers
                 GroupId = userGroup.GroupId,
                 JoinedAt = userGroup.JoinedAt,
                 RemovedAt = userGroup.RemovedAt,
+                RoleId = userGroup.RoleId,
+                IsRemoved = userGroup.IsRemoved
             };
         }
 

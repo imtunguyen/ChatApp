@@ -1,4 +1,5 @@
-﻿using ChatApp.Application.DTOs.Group;
+﻿using ChatApp.Application.Abstracts.Services;
+using ChatApp.Application.DTOs.Group;
 using ChatApp.Application.DTOs.UserGroup;
 using ChatApp.Application.Interfaces;
 using ChatApp.Application.Mappers;
@@ -15,26 +16,41 @@ namespace ChatApp.Application.Services.Implementations
     public class GroupService : IGroupService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ICloudinaryService _cloudinaryService;
         private readonly IValidator<GroupAddDto> _validator;
-        public GroupService(IUnitOfWork unitOfWork, IValidator<GroupAddDto> validator)
+        public GroupService(IUnitOfWork unitOfWork, IValidator<GroupAddDto> validator, ICloudinaryService cloudinaryService)
         {
             _unitOfWork = unitOfWork;
             _validator = validator;
+            _cloudinaryService = cloudinaryService;
         }
 
-        public async Task<GroupDto> CreateGroupAsync(GroupAddDto Group)
+        public async Task<GroupDto> CreateGroupAsync(GroupAddDto group)
         {
-            var result = await _validator.ValidateAsync(Group);
+            var result = await _validator.ValidateAsync(group);
             if (!result.IsValid)
             {
                 throw new BadRequestException(string.Join(", ", result.Errors.Select(e => e.ErrorMessage)));
             }
-            var GroupEntity = GroupMapper.GroupAddDtoToEntity(Group);
+            var groupEntity = GroupMapper.GroupAddDtoToEntity(group);
 
-            await _unitOfWork.GroupRepository.AddAsync(GroupEntity);
+            if (group.AvatarUrl != null)
+            {
+                var cloudinaryResult = await _cloudinaryService.UploadAsync(group.AvatarUrl);
+
+                if (cloudinaryResult?.Url == null)
+                {
+                    throw new BadRequestException("Lỗi khi upload avatar lên Cloudinary");
+                }
+
+                groupEntity.AvatarUrl = cloudinaryResult.Url;
+            }
+
+            await _unitOfWork.GroupRepository.AddAsync(groupEntity);
             return await _unitOfWork.CompleteAsync()
-                ? GroupMapper.EntityToGroupDto(GroupEntity)
+                ? GroupMapper.EntityToGroupDto(groupEntity)
                 : throw new BadRequestException("Lỗi khi tạo nhóm chat");
+
         }
 
         public async Task<GroupDto> UpdateGroupAsync(GroupUpdateDto Group)

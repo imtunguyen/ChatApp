@@ -10,7 +10,8 @@
           </div>
         }@else if (selectedGroup) {
           <div>
-            <nz-avatar nzIcon="user" nzSize="large" class="me-2"></nz-avatar>
+            <nz-avatar [nzSrc]="selectedGroup.avatarUrl" nzSize="large" class="me-2"></nz-avatar>
+
             {{ selectedGroup.name }}
           </div>
         }@else {
@@ -61,10 +62,11 @@
               <div class="text" *ngIf="message.content !== null">{{ message.content }}</div>
              
               <div class="file-content" *ngFor="let file of message.files">
-                <img *ngIf="isImage(message)" [src]="file.url" class="message-media" />
-                <video *ngIf="isVideo(message)" [src]="file.url" controls class="message-media"></video>
-                <audio *ngIf="isAudio(message)" [src]="file.url" controls class="message-media"></audio>
+                <img *ngIf="isImage(file)" [src]="file.url" class="message-media" />
+                <video *ngIf="isVideo(file)" [src]="file.url" controls class="message-media"></video>
+                <audio *ngIf="isAudio(file)" [src]="file.url" controls class="message-media"></audio>
               </div>
+              
               
             </div>
             <div>
@@ -143,30 +145,129 @@
     </div>
   
     <!-- Chat Detail -->
-    <div class="col-4 flex-column d-flex"
+    <div class="col-4 flex-column d-flex chat-detail"
       [ngClass]="{ 'd-none': !isVisible, 'col-4': isVisible }">
       <div class="text-center">
         <h3>Thông tin hội thoại</h3>
-        <nz-avatar [nzSrc]="selectedUser?.profilePictureUrl" nzSize="large" class="mb-2"></nz-avatar>
+        <nz-avatar *ngIf="selectedUser" [nzSrc]="selectedUser?.profilePictureUrl" nzSize="large" class="mb-2"
+          (click)="showUserProfile(selectedUser.id)">
+        </nz-avatar>
         <h5>{{ selectedUser?.fullName }}</h5>
+          <nz-avatar *ngIf="selectedGroup" [nzSrc]="selectedGroup?.avatarUrl" nzSize="large" class="mb-2"></nz-avatar>
       </div>
       <hr />
+      <button *ngIf="selectedGroup" nz-button nzType="default" nzShape="circle" class="action-button" (click)="showAddMemberModal()">
+        <nz-modal [(nzVisible)]="addMemberVisible" nzTitle="Thêm thành viên " (nzOnCancel)="handleMemberCancel()"
+         [nzFooter]="memberFooter">
+          <ng-container *nzModalContent>
+            <div class="">
+                <div class="group-content">
+                  <div class="group-search">
+                    <nz-input-group [nzSuffix]="suffixIconSearch">
+                      <input nz-input [(ngModel)]="searchMember" 
+                        placeholder="Tìm kiếm" />
+                    </nz-input-group>
+                    <ng-template #suffixIconSearch>
+                      <i nz-icon nzType="search"></i>
+                    </ng-template>
+                  </div>
+
+                  <div class="">
+                    <div class="">
+                      <h4>Danh sách người dùng</h4>
+                      <div *ngFor="let user of users" class="">
+                        <label nz-checkbox [nzChecked]="user.isSelected" (nzCheckedChange)="toggleUser(user, $event)">
+                          <img [src]="user.profilePictureUrl" class="rounded-circle me-3 user-avatar" alt="Avatar"
+                            width="40" height="40" />
+                          <span class="user-name">{{ user.fullName }}</span>
+                        </label>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+              
+             
+            </div>
+
+          </ng-container>
+        </nz-modal>
+        <nz-icon nzType="usergroup-add" nzTheme="outline" />
+      </button>
       <h6>Shared Files</h6>
       <ul>
         <li *ngFor="let file of selectedUser?.files">{{ file }}</li>
       </ul>
-      <div *ngIf="selectedGroup">
+      <div *ngIf="selectedGroup" class="members-container">
         <h6>Members</h6>
-        <ul>
-          <li *ngFor="let member of userGroups">
-            <nz-avatar [nzSrc]="member.profilePictureUrl" nzSize="small" class="me-2"></nz-avatar>
-            {{ member.fullName }}
-          </li>
-        </ul>
+        <li  *ngFor="let member of userGroups" class="member-item">
+          <nz-avatar [nzSrc]="member.profilePictureUrl" nzSize="small"></nz-avatar>
+          <span class="member-name">{{ member.fullName }}</span>
+          <span class="member-role">({{ member.roleName }})</span>
+          
+          @if(currentUser.id != member.id && member.roleName == 'Member'){
+            <div class="dropdown">
+              <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <nz-icon nzType="ellipsis" nzTheme="outline"></nz-icon>
+              </button>
+              <ul class="dropdown-menu">
+                <li>
+                  <a class="dropdown-item" (click)="updateRole(member)">Đặt làm trưởng nhóm</a>
+                  <a class="dropdown-item" (click)="removeMemberFromGroup(member.id)">Xóa khỏi nhóm</a>
+                </li>
+              </ul>
+            </div>
 
+          }
+          
+          
+          
+          
+        </li>
+     
+      <div *ngIf="selectedGroup">
+        <button class="btn btn-danger col-12" (click)="removeMemberFromGroup(currentUser.id)">Rời nhóm</button>
+        <button class="btn btn-secondary col-12" (click)="deleteGroup()">Giải tán nhóm</button>
       </div>
+    </div>  
     </div>
-
   </div>
+
+  <nz-modal [nzVisible]="showInfoModal" nzTitle="Thông tin tài khoản" (nzOnCancel)="handleCancel()" [nzFooter]="customFooter">
+    <ng-container *nzModalContent>
+        <div class="profile-info">
+          <div class="avatar-container">
+            <img [src]="selectedUser?.profilePictureUrl" class="avatar" alt="Avatar" />
+          </div>
+          <h3 class="user-name">{{ selectedUser?.fullName }}</h3>
+          <h2 class="user-name">{{selectedUser.email}}</h2>
+        </div>
+  
+    </ng-container>
+  </nz-modal>
+  <ng-template #customFooter>
+    <div class="col-12">
+      <button class="col-6 btn btn-danger ">Xóa bạn</button>
+    <button class="col-6 btn btn-primary" (click)="blockUser(selectedUser.id)">Chặn</button>
+    </div>
+  </ng-template>
+  <ng-template #memberFooter>
+    <div class="col-12">
+      <button nz-button class="btn btn-primary" type="button" (click)="addMember()">
+        Thêm thành viên
+      </button>
+    </div>
+  </ng-template>
+  <ng-template #customFooter>
+    <div class="col-12">
+      <button nz-button class="btn btn-danger col-6" type="button" (click)="updateFriendShip(selectedUser.id)">
+        {{getFriendShipStatus(selectedUser.id)}}
+      </button>
+      <button nz-button class="btn btn-success col-6" type="button" (click)="blockUser(selectedUser.id)">
+        Chặn
+      </button>
+    </div>
+  </ng-template>
   <app-video-call *ngIf="isVideoCallVisible"></app-video-call>
   <!-- <app-add-group></app-add-group> -->

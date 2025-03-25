@@ -1,6 +1,10 @@
 ﻿using ChatApp.Application.DTOs.Group;
 using ChatApp.Application.DTOs.UserGroup;
 using ChatApp.Application.Services.Abstracts;
+using ChatApp.Domain.Entities;
+using ChatApp.Domain.Exceptions;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ChatApp.Presentation.Controllers
@@ -9,37 +13,48 @@ namespace ChatApp.Presentation.Controllers
     {
         private readonly IGroupService _GroupService;
         private readonly IUserGroupService _userGroupService;
-        public GroupController(IGroupService GroupService, IUserGroupService userGroupService)
+        private readonly RoleManager<AppRole> _roleManager;
+        public GroupController(IGroupService GroupService, IUserGroupService userGroupService, RoleManager<AppRole> roleManager)
         {
             _GroupService = GroupService;
             _userGroupService = userGroupService;
+            _roleManager = roleManager;
         }
         [HttpPost("Add")]
-        public async Task<IActionResult> CreateGroup([FromForm] GroupAddDto GroupAddDto)
+        public async Task<IActionResult> CreateGroup([FromForm] GroupAddDto groupAddDto)
         {
+            var result = await _GroupService.CreateGroupAsync(groupAddDto);
 
-            var result = await _GroupService.CreateGroupAsync(GroupAddDto);
-            var userGroupAddDto = new UserGroupAddDto
+            var ownerRole = await _roleManager.FindByNameAsync("GroupOwner");
+            var memberRole = await _roleManager.FindByNameAsync("Member");
+
+            if (ownerRole == null || memberRole == null)
+            {
+                throw new BadRequestException("Vai trò không tồn tại");
+            }
+           
+            var userGroups = new List<UserGroupAddDto>
+            {
+                new UserGroupAddDto
+                {
+                    GroupId = result.Id,
+                    UserId = groupAddDto.CreatorId,
+                    RoleId = ownerRole.Id
+                }
+            };
+            
+
+            userGroups.AddRange(groupAddDto.UserIds.Select(userId => new UserGroupAddDto
             {
                 GroupId = result.Id,
-                UserId = GroupAddDto.CreatorId
-            };
-            await _userGroupService.AddUserToGroup(userGroupAddDto);
+                UserId = userId,
+            }));
 
-            foreach(var userId in GroupAddDto.UserIds)
-            {
-                if (userId != GroupAddDto.CreatorId) 
-                {
-                    var additionalUserGroupDto = new UserGroupAddDto
-                    {
-                        GroupId = result.Id,
-                        UserId = userId,
-                    };
-                    await _userGroupService.AddUserToGroup(additionalUserGroupDto);
-                }
-            }
+            await _userGroupService.AddMultipleUsersToGroup(userGroups);
+
             return Ok(result);
         }
+
         [HttpPut("Update")]
         public async Task<IActionResult> UpdateGroup(GroupUpdateDto GroupUpdateDto)
         {
@@ -58,6 +73,10 @@ namespace ChatApp.Presentation.Controllers
             await _GroupService.DeleteGroupAsync(c => c.Id == GroupId);
             return Ok();
         }
+
+     
+
+        
 
     }
 }

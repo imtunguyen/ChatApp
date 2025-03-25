@@ -3,6 +3,7 @@ using ChatApp.Infrastructure.Configuration;
 using ChatApp.Infrastructure.DataAccess;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -18,7 +19,8 @@ namespace ChatApp.Infrastructure.Configurations
             services.AddAuthorization();
             services.AddIdentityApiEndpoints<AppUser>()
                 .AddRoles<AppRole>()
-                .AddEntityFrameworkStores<ChatAppContext>();
+                .AddEntityFrameworkStores<ChatAppContext>()
+                .AddDefaultTokenProviders();
 
             // JWT Authentication setup
             services

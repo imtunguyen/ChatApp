@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ChatApp.Infrastructure.Migrations
 {
     [DbContext(typeof(ChatAppContext))]
-    [Migration("20250308015526_Create")]
+    [Migration("20250315022050_Create")]
     partial class Create
     {
         /// <inheritdoc />
@@ -147,6 +147,9 @@ namespace ChatApp.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AvatarUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -174,25 +177,6 @@ namespace ChatApp.Infrastructure.Migrations
                     b.HasIndex("FileId");
 
                     b.ToTable("Groups");
-                });
-
-            modelBuilder.Entity("ChatApp.Domain.Entities.GroupFile", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("PublicId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Url")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("GroupFile");
                 });
 
             modelBuilder.Entity("ChatApp.Domain.Entities.Message", b =>
@@ -255,7 +239,6 @@ namespace ChatApp.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("FileName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<long>("FileSize")
@@ -337,6 +320,9 @@ namespace ChatApp.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("RemovedAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("RoleId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
@@ -346,6 +332,8 @@ namespace ChatApp.Infrastructure.Migrations
                     b.HasIndex("AppUserId");
 
                     b.HasIndex("GroupId");
+
+                    b.HasIndex("RoleId");
 
                     b.HasIndex("UserId");
 
@@ -534,7 +522,7 @@ namespace ChatApp.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ChatApp.Domain.Entities.GroupFile", "File")
+                    b.HasOne("ChatApp.Domain.Entities.MessageFile", "File")
                         .WithMany()
                         .HasForeignKey("FileId");
 
@@ -606,6 +594,10 @@ namespace ChatApp.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("ChatApp.Domain.Entities.AppRole", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId");
+
                     b.HasOne("ChatApp.Domain.Entities.AppUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -613,6 +605,8 @@ namespace ChatApp.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Group");
+
+                    b.Navigation("Role");
 
                     b.Navigation("User");
                 });

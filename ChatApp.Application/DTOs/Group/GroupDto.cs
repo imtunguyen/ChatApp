@@ -5,6 +5,6 @@
         public int Id { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset? UpdatedAt { get; set; }
-        public GroupFileDto? File { get; set; }
+        public string? AvatarUrl { get; set; }
     }
 }

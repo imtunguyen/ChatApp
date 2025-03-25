@@ -33,21 +33,9 @@ namespace ChatApp.Application.Mappers
                 CreatorId = Group.CreatorId,
                 CreatedAt = Group.CreatedAt,
                 UpdatedAt = Group.UpdatedAt,
-                File = GroupFileToGroupFileDto(Group.File),
+                AvatarUrl = Group.AvatarUrl
             };
         }
-        public static GroupFileDto GroupFileToGroupFileDto(GroupFile file)
-        {
-            if (file == null)
-            {
-                return null;
-            }
-
-            return new GroupFileDto
-            {
-                Id = file.Id,
-                Url = file.Url ?? string.Empty,
-            };
-        }
+       
     }
 }

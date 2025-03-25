@@ -1,7 +1,8 @@
 export enum MessageType {
-  Text = 0,
-  Image = 1,
-  Video = 2,
-  File = 3,
-  Audio = 4,
+  Unknown = 0, 
+  Image = 1,   
+  Video = 2,   
+  Audio =3,  
+  Document = 4, 
+  Other = 5 
 }

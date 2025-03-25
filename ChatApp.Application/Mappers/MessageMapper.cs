@@ -16,7 +16,7 @@ namespace ChatApp.Application.Mappers
                 RecipientId = messageAddDto.RecipientId,
                 GroupId = messageAddDto.GroupId,
                 Content = messageAddDto.Content ?? string.Empty,
-                Files = messageAddDto.Files.Select(f => new MessageFile { FileName = f.FileName }).ToList(),
+                Files = new List<MessageFile>(),
                 Status = MessageStatus.Sent,
                 SentAt = DateTimeOffset.UtcNow,
             };
@@ -59,7 +59,7 @@ namespace ChatApp.Application.Mappers
             {
                 Id = messageFile.Id,
                 Url = messageFile.Url ?? string.Empty,
-                
+                FileType = messageFile.FileType                
             };
 
         }

@@ -9,9 +9,10 @@ namespace ChatApp.Application.Services.Abstracts
 {
     public interface IUserGroupService
     {
-        Task<UserGroupDto> AddUserToGroup(UserGroupAddDto userGroupAddDto);
+        Task<List<UserGroupDto>> AddMultipleUsersToGroup(List<UserGroupAddDto> userGroupAddDtos);
         Task<UserGroupDto> UpdateUserGroup(UserGroupUpdateDto userGroupUpdateDto);
-        Task<bool> DeleteUserGroup(string userId, int GroupId);
+        Task<bool> RemoveUserFromGroup(string userId, int groupId);
+        Task<UserGroup> UpdateRole(UserGroupUpdateDto userGroupUpdateDto);
         Task<IEnumerable<UserDto>> GetUsersInGroupAsync(int GroupId);
     }
 }

@@ -8,4 +8,6 @@ export interface User {
   gender: string;
   isOnline: boolean;
   isSelected: boolean;
+  roleId: string;
+  roleName: string;
 }

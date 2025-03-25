@@ -1,8 +1,11 @@
 import { MessageType } from "./enum/message-type";
 
-export interface File{
+export interface MessageFile{
   id: number;
   url: string;
+  fileType: number;
+  fileName: string;
+  fileSize: number;
 }
 
 export interface Message{
@@ -16,6 +19,6 @@ export interface Message{
   status: string;
   isDeleted: boolean;
   type: MessageType;
-  files: File[];
+  files: MessageFile[];
 
 }

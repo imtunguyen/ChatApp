@@ -31,9 +31,10 @@ namespace ChatApp.Presentation.Controllers
         private readonly IEmailService _emailService;
         private readonly EmailConfig _emailConfig;
         private readonly ICloudinaryService _cloudinaryService;
+        private readonly RoleManager<AppRole> _roleManager;
 
         public AuthController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager,
-            ITokenService tokenService, IEmailService emailService, ICloudinaryService cloudinaryService, IOptions<EmailConfig> emailConfig)
+            ITokenService tokenService, IEmailService emailService, ICloudinaryService cloudinaryService, IOptions<EmailConfig> emailConfig, RoleManager<AppRole> roleManager)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -41,6 +42,7 @@ namespace ChatApp.Presentation.Controllers
             _emailService = emailService;
             _cloudinaryService = cloudinaryService;
             _emailConfig = emailConfig.Value;
+            _roleManager = roleManager;
         }
 
         [HttpPost("login")]
@@ -307,6 +309,18 @@ namespace ChatApp.Presentation.Controllers
 
             return (emailExists, userNameExists);
         }
+        [HttpGet("roles")]
+        public async Task<IActionResult> GetRoles()
+        {
+            var roles = await _roleManager.Roles
+                .Select(r => new { r.Id, r.Name })
+                .ToListAsync();
+
+            return Ok(roles);
+        }
+
+       
+
     }
 }
 

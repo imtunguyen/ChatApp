@@ -1,12 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, inject, Input, OnChanges, OnInit, SimpleChanges, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, inject, Input, OnChanges, OnInit, SimpleChanges, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NzAvatarComponent } from 'ng-zorro-antd/avatar';
+import { NzAvatarComponent, NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { MessageType } from '../../../../core/models/enum/message-type';
-import { Message } from '../../../../core/models/message.module';
+import { Message, MessageFile } from '../../../../core/models/message.module';
 import { Pagination } from '../../../../shared/models/pagination.module';
-import { MessageParams } from '../../../../shared/params/messageParams';
 import { User } from '../../../../core/models/user.module';
 import { MessageService } from '../../../../core/services/message.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -14,12 +13,19 @@ import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { Router } from '@angular/router';
 import { VideoCallComponent } from "../video-call/video-call.component";
 import { SignalRService } from '../../../../core/services/signalr.service';
-import { InfiniteScrollModule } from 'ngx-infinite-scroll';
+import { NzModalModule } from 'ng-zorro-antd/modal';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { GroupService } from '../../../../core/services/group.service';
 import { tap } from 'rxjs';
+import { FriendShipService } from '../../../../core/services/friendship.service';
+import { FriendShipStatus } from '../../../../core/models/enum/friendship-status';
+import { ToastrService } from '../../../../shared/services/toastr.service';
+import { NzMenuModule } from 'ng-zorro-antd/menu';
+import { UserGroup } from '../../../../core/models/user-group.module';
 @Component({
   selector: 'app-chat-box',
-  imports: [CommonModule, NzAvatarComponent, NzIconModule, FormsModule, NzSpinModule, VideoCallComponent, InfiniteScrollModule],
+  imports: [CommonModule, NzAvatarComponent, NzIconModule, NzCheckboxModule, FormsModule, NzMenuModule, NzSpinModule, VideoCallComponent, NzAvatarModule, NzModalModule, NzInputModule],
   templateUrl: './chat-box.component.html',
   styleUrl: './chat-box.component.scss'
 })
@@ -27,11 +33,19 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   @Input() selectedUser: any;
   @Input() selectedGroup: any;
 
+  users: User[] = [];
   userGroups: User[] = [];
   userCache = new Map<string, any>();
   currentUser: any;
+  selectedUsers: any[] = [];
+  selectedUserIds: string[] = [];
   avatars: { [key: string]: string } = {};
   isVisible: boolean = true;
+  addMemberVisible: boolean = false;
+  btnFriendShipText: string = '';
+  friendShipStatus: { [userId: string]: FriendShipStatus } = {};
+  isCollapsed = false;
+  showInfoModal = false;
   isVideoCallVisible: boolean = false;
   
   isEditing: boolean = false;
@@ -45,6 +59,7 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   //search
   isSearching = false;
   searchText = '';
+  searchMember = '';
 
   @ViewChild('searchBox') searchBox!: ElementRef;
 
@@ -71,14 +86,18 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   MessageType: typeof MessageType = MessageType;
   selectedFiles: { src: string; file: File}[] = [];
 
+  rolesMap: Map<string, string> = new Map();
+
   @ViewChild('messageContainer') messagesContainer!: ElementRef;
 
   private messageService = inject(MessageService);
   private authService = inject(AuthService);
   private signalRService = inject(SignalRService);
   private groupService = inject(GroupService);
+  private friendShipService = inject(FriendShipService);
+  private toastrService = inject(ToastrService);
 
-  constructor(private router: Router) {
+  constructor(private router: Router, private cdr: ChangeDetectorRef) {
     this.currentUser = this.authService.getCurrentUser();
   }
   ngOnChanges(changes: SimpleChanges): void {
@@ -93,7 +112,8 @@ export class ChatBoxComponent implements OnInit, OnChanges{
       this.resetValues();
       this.loadMessagesGroup();
       this.scrollToBottom();
-      this.loadUserGroups();
+      this.loadRoles();
+
       console.log("Đã chọn Group:", this.selectedGroup);
     }
   }
@@ -106,7 +126,6 @@ export class ChatBoxComponent implements OnInit, OnChanges{
         }
       }
     });
-    
   }
   resetValues(): void {
     this.messages = [];
@@ -341,15 +360,16 @@ export class ChatBoxComponent implements OnInit, OnChanges{
       });
   }
 
-  isImage(message: Message): boolean {
-    return message.type === MessageType.Image;
+  isImage(file: MessageFile): boolean {
+    return file.fileType === MessageType.Image;
   }
-  isVideo(message: Message): boolean {
-    return message.type === MessageType.Video;
+  isVideo(file: MessageFile): boolean {
+    return file.fileType === MessageType.Video;
   }
-  isAudio(message: Message): boolean {
-    return message.type === MessageType.Audio;
+  isAudio(file: MessageFile): boolean {
+    return file.fileType === MessageType.Audio;
   }
+  
 
   onFileSelected(event: any) {
     console.log("hhhhhhhhhhhhhh")
@@ -432,11 +452,31 @@ export class ChatBoxComponent implements OnInit, OnChanges{
 
   // Group
 
+  loadRoles() {
+    this.authService.getRoles().subscribe({
+      next: (roles) => {
+        this.rolesMap = new Map(); 
+        roles.forEach(role => {
+          this.rolesMap.set(role.id, role.name);
+        });
+        this.loadUserGroups(); 
+      },
+      error: (error) => {
+        console.log("Error loading roles:", error);
+      }
+    });
+  }
+  
+  
+  // Load danh sách user trong nhóm
   loadUserGroups() {
     this.groupService.getUsersByGroup(this.selectedGroup.id).subscribe({
       next: (users) => {
         console.log("UsersGroup:", users);
-        this.userGroups = Array.isArray(users) ? users : [];
+        this.userGroups = Array.isArray(users) ? users.filter(user => !user.isRemoved) : [];
+        this.userGroups.forEach(user => {
+          user.roleName = this.rolesMap.get(user.roleId) || "Unknown";
+        });
       },
       error: (error) => {
         console.log(error);
@@ -444,31 +484,169 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     });
   }
 
+  showUserProfile(user: User) {
+    this.showInfoModal = true;
+  }
+  showAddMemberModal() {
+    this.loadUsers();
+    this.addMemberVisible = true;
+  }
+  loadUsers() {
+    this.authService.getUsers().subscribe({
+      next: (users) => {
+        this.users = users.filter((user) => user.id !== this.currentUser.id);
+      },
+      error: (error) => {
+        console.log("Error loading users:", error);
+      }
+    });
 
-  // getMessagesChatRoom(){
-  //   this.messageService.getMessagesChatRoom(this.messageParams, this.selectedChatRoom.id).subscribe({
-  //     next: (response) => {
-  //       this.messages = response.result as Message[];
-  //       this.pagination = response.pagination as Pagination;
+  }
+  handleCancel() {
+    console.log('Button cancel clicked!');
+    this.showInfoModal = false;
+  }
 
-  //       this.messages.forEach(message => {
-  //         this.authService.getUserById(message.senderId).subscribe({
-  //           next: (user) => {
-  //             this.avatars[message.senderId] = user.profilePictureUrl;
-  //           },
-  //           error: (error) => {
-  //             console.log(error);
-  //           }
-  //         });
-  //       })
+  handleMemberCancel() {
+    this.addMemberVisible = false;
+  }
 
+  getFriendShipStatus(userId: string) {
+    this.friendShipService.getFriendShips(this.currentUser.id, userId).subscribe({
+      next: (friendShip) => {
+        this.friendShipStatus[userId] = friendShip?.status || FriendShipStatus.None;
+        if(friendShip?.status === FriendShipStatus.None){
+          this.btnFriendShipText = 'Kết bạn';
+        }
+        else if(friendShip?.status === FriendShipStatus.Accepted){
+          this.btnFriendShipText = 'Hủy kết bạn';
+        }
+      },
+      error: (error) => {
+        this.friendShipStatus[userId] = FriendShipStatus.None;
+      }
+    });
+  }
 
-  //     },
-  //     error: (error) => {
-  //       console.log(error);
-  //     }
-  //   });
-  // }
+  updateFriendShip(userId: string) {
+   this.friendShipService.updateFriendShip(this.currentUser.id, userId, FriendShipStatus.None).subscribe({
+     next: (response) => {
+       console.log("Remove friend response:", response);
+       this.toastrService.showSuccess("Đã xóa bạn bè");
+     },
+      error: (error) => {
+        console.log("Error removing friend:", error);
+      }
+    });
+  }
+  blockUser(userId: string) {
+    this.friendShipService.updateFriendShip(this.currentUser.id, userId, FriendShipStatus.Blocked).subscribe({
+      next: (response) => {
+        console.log("Block user response:", response);
+        this.toastrService.showSuccess("Đã chặn người dùng");
+      },
+      error: (error) => {
+        console.log("Error blocking user:", error);
+      },
+    });
+  }
+
+  toggleUser(user: User, isChecked: boolean) {
+    user.isSelected = isChecked;
+  
+    if (isChecked) {
+      if (!this.selectedUsers.some(u => u.id === user.id)) {
+        this.selectedUsers.push(user);
+        this.selectedUserIds.push(user.id);
+      }
+    } else {
+      this.selectedUsers = this.selectedUsers.filter(u => u.id !== user.id);
+      this.selectedUserIds = this.selectedUserIds.filter(id => id !== user.id);
+    }
+  
+    console.log("Selected Users:", this.selectedUsers);
+  }
+  
+
+  addMember() {
+    const userGroups = this.selectedUsers.map(user => ({
+      groupId: this.selectedGroup.id,
+      userId: user.id,
+      roleId: '0'
+    }));
+  
+    this.groupService.addMemberToGroup(userGroups).subscribe({
+      next: (response) => {
+        console.log("Add members response:", response);
+        this.addMemberVisible = false;
+        this.loadUserGroups();
+      },
+      error: (error) => {
+        console.log("Error adding members:", error);
+      }
+    });
+  }
+  removeMemberFromGroup(userId: string) {
+    console.log("Remove member from group:", userId, this.selectedGroup.id);
+  
+    // Kiểm tra số lượng GroupOwner trong danh sách userGroups (đã load trước đó)
+    const groupOwners = this.userGroups.filter(user => user.roleName === "GroupOwner");
+  
+    if (groupOwners.length === 1 && groupOwners[0].id === userId) {
+      this.toastrService.showError("Nhóm cần ít nhất một GroupOwner. Không thể rời nhóm.");
+      return;
+    }
+  
+    // Nếu hợp lệ, thực hiện xóa thành viên
+    this.groupService.removeMember(userId, this.selectedGroup.id).subscribe({
+      next: (response) => {
+        console.log("Remove member response:", response);
+        this.toastrService.showSuccess("Đã xóa thành viên");
+  
+        // Load lại danh sách userGroups sau khi xóa
+        this.loadUserGroups();
+        this.groupService.notifyGroupUpdate();
+      },
+      error: (error) => {
+        console.log("Error removing member:", error);
+      }
+    });
+  }
+  
+
+  updateRole(member: any){
+    const userGroup = {
+      groupId: this.selectedGroup.id,
+      userId: member.id,
+      roleId: member.roleId,
+      isRemoved: member.isRemoved,
+      removedAt: member.removedAt
+    };
+    console.log("Update role:", userGroup);
+    this.groupService.updateRole(userGroup).subscribe({
+      next: (response) => {
+        console.log("Update role response:", response);
+        this.loadUserGroups();
+        this.toastrService.showSuccess("Đã cập nhật vai trò");
+      },
+      error: (error) => {
+        console.log("Error updating role:", error);
+      }
+    });
+  }
+
+  deleteGroup() {
+    this.groupService.deleteGroup(this.selectedGroup.id).subscribe({
+      next: (response) => {
+        console.log("Delete group response:", response);
+        this.toastrService.showSuccess("Đã xóa nhóm");
+        this.router.navigate(['/chat']);
+      },
+      error: (error) => {
+        console.log("Error deleting group:", error);
+      }
+    });
+  }
 
  
 

@@ -1,6 +1,9 @@
-﻿using ChatApp.Infrastructure.Configurations;
+﻿using ChatApp.Domain.Entities;
+using ChatApp.Infrastructure.Configurations;
+using ChatApp.Infrastructure.DataAccess.SeedData;
 using ChatApp.Presentation.Middleware;
 using ChatApp.Presentation.SignalR;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +34,13 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var roleManager = services.GetRequiredService<RoleManager<AppRole>>();
+
+    await RoleSeed.SeedAsync(roleManager); 
 }
 
 app.UseHttpsRedirection();

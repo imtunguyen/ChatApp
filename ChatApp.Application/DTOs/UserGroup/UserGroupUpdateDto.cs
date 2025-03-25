@@ -2,5 +2,6 @@
 {
     public class UserGroupUpdateDto : UserGroupBase
     {
+        public int Id { get; set; }
     }
 }

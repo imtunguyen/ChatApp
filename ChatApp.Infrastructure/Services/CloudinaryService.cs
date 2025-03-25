@@ -1,5 +1,6 @@
 ﻿using ChatApp.Application.Abstracts.Services;
 using ChatApp.Application.DTOs.Cloudinary;
+using ChatApp.Domain.Enums;
 using ChatApp.Infrastructure.Configurations;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
@@ -77,10 +78,20 @@ namespace ChatApp.Infrastructure.Services
 
             return new FileUploadResult
             {
-                PublicId = uploadResult?.PublicId ?? "",
-                Url = uploadResult?.SecureUrl.ToString() ?? "",
-                Error = null
+                PublicId = uploadResult.PublicId,
+                Url = uploadResult.SecureUrl.ToString(),
+                FileName = formFile.FileName,  
+                FileSize = formFile.Length,
+                FileType = GetFileType(fileType)
             };
+        }
+        private FileType GetFileType(string contentType)
+        {
+            if (contentType.StartsWith("image")) return FileType.Image;
+            if (contentType.StartsWith("video")) return FileType.Video;
+            if (contentType.StartsWith("audio")) return FileType.Audio;
+            if (contentType.StartsWith("application")) return FileType.Document;
+            return FileType.Other;
         }
 
 

@@ -13,13 +13,14 @@ namespace ChatApp.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<AppUser>> GetUsersInGroup(int GroupId)
+        public async Task<List<UserGroup>> GetUsersInGroupAsync(int groupId)
         {
-            var users = await _context.UserGroups
-                .Where(ucr => ucr.GroupId == GroupId)
-                .Select(ucr => ucr.User)
+            return await _context.UserGroups
+                .Where(ug => ug.GroupId == groupId && ug.IsRemoved == false)
+                .Include(ug => ug.User ) 
                 .ToListAsync();
-            return users;
         }
+       
+
     }
 }

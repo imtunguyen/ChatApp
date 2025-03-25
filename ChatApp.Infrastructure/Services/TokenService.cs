@@ -28,36 +28,52 @@ namespace ChatApp.Infrastructure.Services
 
         public string GenerateToken(IEnumerable<Claim> claims)
         {
+            // Kiểm tra khóa bí mật có đủ mạnh không
+            if (string.IsNullOrWhiteSpace(_config.SecretKey) || _config.SecretKey.Length < 32)
+            {
+                throw new ArgumentException("Secret key must be at least 32 characters long.");
+            }
+
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config.SecretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
             var token = new JwtSecurityToken(
-                _config.Issuer,
-                _config.Audience,
-                claims,
-                expires: DateTime.Now.AddMinutes(_config.ExpireMin),
+                issuer: _config.Issuer,
+                audience: _config.Audience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(_config.ExpireMin), // Dùng UtcNow thay vì Now
                 signingCredentials: creds
             );
+
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-
         public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
         {
             var key = Encoding.UTF8.GetBytes(_config.SecretKey);
+
             var tokenValidationParameters = new TokenValidationParameters
             {
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ValidateLifetime = false,
-                ValidateIssuerSigningKey = true,
+                ValidateIssuer = true, // Kiểm tra Issuer
+                ValidateAudience = true, // Kiểm tra Audience
+                ValidateLifetime = false, // Không kiểm tra hạn token (vì token đã hết hạn)
+                ValidateIssuerSigningKey = true, // Kiểm tra chữ ký
                 ValidIssuer = _config.Issuer,
                 ValidAudience = _config.Audience,
                 IssuerSigningKey = new SymmetricSecurityKey(key),
-                ClockSkew = TimeSpan.Zero
+                ClockSkew = TimeSpan.Zero // Đảm bảo kiểm tra chính xác thời gian hết hạn
             };
-            var claimsPrincipal = new ClaimsPrincipal(
-                new JwtSecurityTokenHandler().ValidateToken(token, tokenValidationParameters, out var securityToken));
-            return claimsPrincipal;
 
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var claimsPrincipal = tokenHandler.ValidateToken(token, tokenValidationParameters, out var securityToken);
+
+            if (securityToken is not JwtSecurityToken jwtSecurityToken ||
+                !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            {
+                throw new SecurityTokenException("Invalid token");
+            }
+
+            return claimsPrincipal;
         }
+
     }
 }
