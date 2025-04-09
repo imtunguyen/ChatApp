@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, ElementRef, inject, Input, OnChanges, OnInit, SimpleChanges, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, inject, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NzAvatarComponent, NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzIconModule } from 'ng-zorro-antd/icon';
@@ -11,25 +11,25 @@ import { MessageService } from '../../../../core/services/message.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { Router } from '@angular/router';
-import { VideoCallComponent } from "../video-call/video-call.component";
 import { SignalRService } from '../../../../core/services/signalr.service';
 import { NzModalModule } from 'ng-zorro-antd/modal';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { GroupService } from '../../../../core/services/group.service';
-import { tap } from 'rxjs';
+import { distinctUntilChanged, Subject, takeUntil, tap } from 'rxjs';
 import { FriendShipService } from '../../../../core/services/friendship.service';
 import { FriendShipStatus } from '../../../../core/models/enum/friendship-status';
 import { ToastrService } from '../../../../shared/services/toastr.service';
 import { NzMenuModule } from 'ng-zorro-antd/menu';
-import { UserGroup } from '../../../../core/models/user-group.module';
 @Component({
   selector: 'app-chat-box',
-  imports: [CommonModule, NzAvatarComponent, NzIconModule, NzCheckboxModule, FormsModule, NzMenuModule, NzSpinModule, VideoCallComponent, NzAvatarModule, NzModalModule, NzInputModule],
+  imports: [CommonModule, NzAvatarComponent, NzIconModule, NzCheckboxModule, FormsModule, NzMenuModule, NzSpinModule, NzAvatarModule, NzModalModule, NzInputModule],
   templateUrl: './chat-box.component.html',
   styleUrl: './chat-box.component.scss'
 })
 export class ChatBoxComponent implements OnInit, OnChanges{
+
+
   @Input() selectedUser: any;
   @Input() selectedGroup: any;
 
@@ -47,7 +47,7 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   isCollapsed = false;
   showInfoModal = false;
   isVideoCallVisible: boolean = false;
-  
+  isBlocked: boolean = false;
   isEditing: boolean = false;
 
   //record
@@ -87,7 +87,6 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   selectedFiles: { src: string; file: File}[] = [];
 
   rolesMap: Map<string, string> = new Map();
-
   @ViewChild('messageContainer') messagesContainer!: ElementRef;
 
   private messageService = inject(MessageService);
@@ -98,14 +97,17 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   private toastrService = inject(ToastrService);
 
   constructor(private router: Router, private cdr: ChangeDetectorRef) {
-    this.currentUser = this.authService.getCurrentUser();
+  
   }
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['selectedUser'] && changes['selectedUser'].currentValue) {
+    if (changes['selectedUser']?.currentValue && this.currentUser?.id && changes['selectedUser'].currentValue.id) {
       this.selectedGroup = null;
       this.resetValues();
-      this.loadMessages();
-      this.scrollToBottom();
+      setTimeout(() => {
+        this.loadMessages();
+        this.scrollToBottom();
+        this.loadFriendShipStatus(this.selectedUser.id);
+      }, 0);
       console.log("day la selectUser", this.selectedUser)
     } else if (changes['selectedGroup'] && changes['selectedGroup'].currentValue) {
       this.selectedUser = null;
@@ -118,17 +120,42 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     }
   }
   ngOnInit(): void {
-    this.signalRService.newMessage$.subscribe({
-      next: (res) => {
-        if (res) {
-          this.messages.push(res.message);
-          this.scrollToBottom();
+    console.log("[DEBUG] ChatBoxComponent khởi tạo");
+    this.currentUser = this.authService.getCurrentUser();
+    if (this.currentUser) {
+      this.signalRService.startConnection(this.currentUser.id);
+      this.signalRService.newMessage$.subscribe({
+        next: (res) => {
+          console.log("[DEBUG] Đã nhận tin nhắn qua BehaviorSubject:", res);
+          if (!res) {
+            console.error("res bị null hoặc undefined!");
+          } else {
+            console.log("Tin nhắn hợp lệ, cập nhật giao diện.");
+            this.messages.push(res);
+            this.scrollToBottom();
+          }
         }
-      }
-    });
+      });
+    }
+    
+    
+
   }
+ 
   resetValues(): void {
     this.messages = [];
+    this.pagination = {
+      currentPage: 1,
+      itemPerPage: 10,
+      totalItems: 0,
+      totalPages: 1,
+    };
+    this.params = {
+      pageNumber: 1,
+      pageSize: 10,
+      search: '',
+    }
+   
     this.newMessage = '';
     this.avatars = {};
   }
@@ -210,9 +237,6 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     this.isVisible = !this.isVisible;
   }
 
-  toggleVideoCall(){
-    this.isVideoCallVisible = !this.isVideoCallVisible;
-  }
     
   updateMessage(message: Message) {
     console.log("update message", message)
@@ -260,7 +284,8 @@ export class ChatBoxComponent implements OnInit, OnChanges{
           next: (response) => {
             const message = response as Message;
             this.messages = this.messages.map(m => m.id === message.id ? message : m);
-            this.signalRService.sendMessage(message.content, this.selectedUser.id);
+            this.signalRService.sendMessage(message);
+            this.messageService.notifyMessageUpdate();
             this.isEditing = false;
             this.resetMessageInput();
           },
@@ -284,8 +309,8 @@ export class ChatBoxComponent implements OnInit, OnChanges{
         next: (response) => {
           const message = response as Message;
           this.messages.push(message);
-          this.signalRService.sendMessage(message.content, this.selectedGroup.id);
-    
+          this.signalRService.sendMessage(message);
+          this.messageService.notifyMessageUpdate();
           this.scrollToBottom();
           this.resetMessageInput();
         }
@@ -296,8 +321,8 @@ export class ChatBoxComponent implements OnInit, OnChanges{
         next: (response) => {
           const message = response as Message;
           this.messages.push(message);
-          this.signalRService.sendMessage(message.content, this.selectedUser.id);
-    
+          this.signalRService.sendMessage(message);
+          this.messageService.notifyMessageUpdate();
           this.scrollToBottom();
           this.resetMessageInput();
         },
@@ -308,12 +333,13 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   }
   
   loadMessages() {
-    if (this.loading) return;
+    if (this.loading || !this.selectedUser?.id || !this.currentUser?.id) return;
     this.loading = true;
-
+    console.log("params", this.params)
     this.messageService
       .getMessagesThread(this.params, this.currentUser.id, this.selectedUser.id)
       .subscribe((result) => {
+        console.log("Raw API Response:", result);
         if (result.items) {
           this.messages = [...result.items.reverse(), ...this.messages];
         }
@@ -487,8 +513,17 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   showUserProfile(user: User) {
     this.showInfoModal = true;
   }
-  showAddMemberModal() {
+  showAddMemberModal(groupId: number) {
     this.loadUsers();
+    this.groupService.getUsersByGroup(groupId).subscribe({
+      next: (usersInGroup) => {
+        this.users = this.users.map(user => {
+          const isMember = Array.isArray(usersInGroup) && usersInGroup.some(groupUser => groupUser.id === user.id);
+          return { ...user, isMember }; 
+        });
+      }
+    });
+    
     this.addMemberVisible = true;
   }
   loadUsers() {
@@ -544,10 +579,57 @@ export class ChatBoxComponent implements OnInit, OnChanges{
       next: (response) => {
         console.log("Block user response:", response);
         this.toastrService.showSuccess("Đã chặn người dùng");
+        this.loadFriendShipStatus(userId);
+        this.friendShipService.notifyFriendShipUpdate();
       },
       error: (error) => {
         console.log("Error blocking user:", error);
       },
+    });
+  }
+
+  unblockUser(userId: string) {
+    this.friendShipService.getFriendShips(this.currentUser.id, userId).subscribe({
+      next: (friendShip) => {
+        if(friendShip.addresseeId === this.currentUser.id){
+          this.toastrService.showError("Không thể bỏ chặn");
+          return;
+        }
+        this.friendShipService.updateFriendShip(this.currentUser.id, userId, FriendShipStatus.Accepted).subscribe({
+          next: (response) => {
+            console.log("Unblock user response:", response);
+            this.toastrService.showSuccess("Đã bỏ chặn người dùng");
+            this.btnFriendShipText = 'Chặn';
+            this.loadFriendShipStatus(userId);
+            this.friendShipService.notifyFriendShipUpdate();
+          },
+          error: (error) => {
+            console.log("Error unblocking user:", error);
+          },
+        });
+      },
+      error: (error) => {
+        console.log("Error fetching friendship status:", error);
+        this.toastrService.showError("Lỗi khi kiểm tra trạng thái bạn bè.");
+      }
+    });
+   
+  }
+
+  loadFriendShipStatus(userId: string) {
+    this.friendShipService.getFriendShips(this.currentUser.id, userId).subscribe({
+      next: (friendShip) => {
+        this.friendShipStatus[userId] = friendShip?.status || FriendShipStatus.None;
+       
+        if(friendShip?.status === FriendShipStatus.Blocked){
+          this.isBlocked = true;
+          this.btnFriendShipText = 'Bỏ chặn';
+        }
+        else{
+          this.isBlocked = false;
+          this.btnFriendShipText = 'Chặn';
+        }
+      }
     });
   }
 

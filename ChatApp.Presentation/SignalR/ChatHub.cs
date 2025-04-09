@@ -1,4 +1,5 @@
 ﻿using ChatApp.Application.Abstracts.Services;
+using ChatApp.Application.DTOs.Message;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
@@ -44,11 +45,12 @@ namespace ChatApp.Presentation.SignalR
             await base.OnDisconnectedAsync(exception);
         }
 
-        public async Task SendPrivateMessage(string userId, string content)
+        public async Task SendPrivateMessage(MessageAddDto message)
         {
-            await Clients.User(userId).SendAsync("ReceiveMessage", content);
-            await Clients.User(userId).SendAsync("NewMessageNotification", userId);
+            await Clients.User(message.RecipientId!).SendAsync("ReceiveMessage", message);
+ 
         }
+
         public async Task SendGroupMessage(string groupId, string content)
         {
             await Clients.Group(groupId).SendAsync("ReceiveMessage", content);
@@ -69,6 +71,11 @@ namespace ChatApp.Presentation.SignalR
         {
             var onlineUsers = await _userStatusService.GetOnlineUsers();
             await Clients.Caller.SendAsync("ReceiveOnlineUsers", onlineUsers);
+        }
+
+        public async Task ReceiveNotification(string recipientId, string content)
+        {
+            await Clients.User(recipientId).SendAsync("ReceiveNotification", content);
         }
 
     }

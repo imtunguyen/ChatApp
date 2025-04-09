@@ -57,7 +57,7 @@ export class AuthService {
         console.log('User logged in:', response.user.id);
         this.currentUser.set(response.user);
         this.storage.setItem('user', JSON.stringify(response.user));
-        this.signalR.startConnection();
+        this.signalR.startConnection(response.user.id);
       })
     );
   }

@@ -20,5 +20,5 @@ export interface Message{
   isDeleted: boolean;
   type: MessageType;
   files: MessageFile[];
-
+  isRead: boolean;
 }

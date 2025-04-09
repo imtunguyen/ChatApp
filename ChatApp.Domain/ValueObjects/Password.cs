@@ -10,8 +10,7 @@ namespace ChatApp.Domain.ValueObjects
         {
             if (string.IsNullOrWhiteSpace(value) || !IsValidPassword(value))
                 throw new BadRequestException(
-                    "Password must be at least 6 characters long and include uppercase, " +
-                    "lowercase letters, a number, and a special character.");
+                    "Mật khẩu phải dài ít nhất 6 ký tự và bao gồm chữ hoa, chữ thường, một số và một ký tự đặc biệt.");
 
             Value = value;
         }

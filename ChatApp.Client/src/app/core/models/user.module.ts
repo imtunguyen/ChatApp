@@ -10,4 +10,8 @@ export interface User {
   isSelected: boolean;
   roleId: string;
   roleName: string;
+  lastMessage: string;
+  lastMessageTime: Date;
+  isMember: boolean;
+  hasNewMessage : boolean;
 }

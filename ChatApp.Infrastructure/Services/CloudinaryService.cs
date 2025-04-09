@@ -46,7 +46,8 @@ namespace ChatApp.Infrastructure.Services
                 {
                     File = new FileDescription(formFile.FileName, stream),
                     Transformation = transformation != null
-                        ? new Transformation().Height(500).Width(500).Crop("fill").Gravity("face")
+                        ? new Transformation().Height(500).Width(500).Crop("fill").Gravity("face").FetchFormat("auto").Quality("auto")
+
                         : null,
                     Folder = folder
                 };

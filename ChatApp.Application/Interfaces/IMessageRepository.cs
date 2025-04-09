@@ -14,5 +14,8 @@ namespace ChatApp.Application.Interfaces
         Task<PagedList<Message>> GetMessagesGroupAsync(MessageParams messageParams, int groupId);
         Task<Message?> GetLastMessageAsync(string senderId, string recipientId);
         Task<PagedList<Message>> GetAllAsync(MessageParams baseParams, bool tracked = false);
+        Task<Message?> GetUnreadMessageByIdAsync(int messageId);
+
+        Task<bool> MarkMessageAsReadAsync(int messageId);
     }
 }

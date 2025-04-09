@@ -10,7 +10,7 @@ namespace ChatApp.Domain.ValueObjects
         public Username(string value)
         {
             if (string.IsNullOrWhiteSpace(value) || value.Length < 3 || value.Length > 20)
-                throw new BadRequestException("Invalid username.");
+                throw new BadRequestException("Tên đăng nhập phải nhiều hơn 2 ký tự và ít hơn 20.");
 
             Value = value;
         }

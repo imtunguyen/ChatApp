@@ -1,1 +1,8 @@
-<p>groups-list works!</p>
+<p>Nhóm chat</p>
+<ul>
+    <li *ngFor="let group of groupsList">
+        <img [src]="group.avatarUrl" class="rounded-circle user-avatar me-2" alt="Avatar" />
+        <span>{{ group.name }}</span>
+       
+    </li>
+</ul>

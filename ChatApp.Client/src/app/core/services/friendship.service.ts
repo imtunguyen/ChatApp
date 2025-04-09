@@ -2,6 +2,7 @@ import { inject, Injectable } from "@angular/core";
 import { ApiService } from "../../shared/services/api.service";
 import { FriendShip, updateFriendShip } from "../models/friendship.module";
 import { FriendShipStatus } from "../models/enum/friendship-status";
+import { BehaviorSubject } from "rxjs";
 
 
 @Injectable({
@@ -10,6 +11,9 @@ import { FriendShipStatus } from "../models/enum/friendship-status";
 export class FriendShipService {
 
   private api = inject(ApiService);
+
+  private friendShipUpdateSubject = new BehaviorSubject<void>(undefined);
+    friendShipUpdate = this.friendShipUpdateSubject.asObservable();
     constructor() { }
   addFriendShip(requesterId: string, addresseeId: string) {
     const friendship = {
@@ -33,7 +37,7 @@ export class FriendShipService {
   }
 
   getFriendShipsByUser(userId: string, status: number){
-    return this.api.get<FriendShip[]>(`friendship/getByUser?userId=${userId}&status=${status}`);
+    return this.api.get<FriendShip[]>(`friendship/GetByUserId?userId=${userId}&status=${status}`);
   }
 
   getPendingRequests(userId: string){
@@ -42,5 +46,9 @@ export class FriendShipService {
 
   getFriends(userId: string){
     return this.api.get<FriendShip[]>(`friendship/friends/${userId}`);
+  }
+
+  notifyFriendShipUpdate(){
+    this.friendShipUpdateSubject.next();
   }
 }

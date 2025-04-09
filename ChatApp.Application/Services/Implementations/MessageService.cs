@@ -47,6 +47,8 @@ namespace ChatApp.Application.Services.Implementations
                 message.Files.AddRange(messageFiles);
             }
             await _unitOfWork.MessageRepository.AddAsync(message);
+
+         
             return await _unitOfWork.CompleteAsync()
                 ? MessageMapper.EntityToMessageDto(message)
                 : throw new BadRequestException("Lỗi khi tạo tin nhắn");
@@ -129,9 +131,16 @@ namespace ChatApp.Application.Services.Implementations
             throw new NotImplementedException();
         }
 
-        public Task<bool> MarkMessageAsReadAsync(int messageId)
+        public async Task<bool> MarkMessageAsReadAsync(int messageId)
         {
-            throw new NotImplementedException();
+            var message = await _unitOfWork.MessageRepository.GetUnreadMessageByIdAsync(messageId);
+            if (message != null)
+            {
+                message.MarkAsRead();
+                await _unitOfWork.CompleteAsync();
+                return true;
+            }
+            return false;
         }
 
         public async Task<PagedList<MessageDto>> GetMessagesGroupAsync(MessageParams messageParams, int groupId)

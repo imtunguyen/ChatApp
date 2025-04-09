@@ -49,6 +49,7 @@ namespace ChatApp.Application.Mappers
                 Type = message.Type,
                 SentAt = message.SentAt,
                 ReadAt = message.ReadAt,
+                IsRead = message.IsRead,
                 IsDeleted = message.IsDeleted,
                 Files = message.Files.Select(MessageFileToMessageFileDto).ToList(),
             };

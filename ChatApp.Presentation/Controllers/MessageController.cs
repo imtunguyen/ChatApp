@@ -67,5 +67,19 @@ namespace ChatApp.Presentation.Controllers
             return NoContent();
         }
 
+        [HttpPut("MarkAsRead")]
+        public async Task<IActionResult> MarkMessageAsRead(int messageId)
+        {
+            var result = await _messageService.MarkMessageAsReadAsync(messageId);
+
+            if (result)
+            {
+                return NoContent(); 
+            }
+
+            return NotFound(new { message = "Message not found or already read." });
+        }
+
+
     }
 }

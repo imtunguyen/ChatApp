@@ -107,7 +107,8 @@
   </div>
   <div nz-col nzSpan="16">
     <nz-form-item>
-      <nz-form-control [nzErrorTip]="passwordErrorTpl">
+      <nz-form-control [nzErrorTip]="passwordErrorTpl"
+      [nzValidateStatus]="registerForm">
         <nz-input-group [nzSuffix]="passwordSuffix">
           <input
             nz-input
@@ -142,7 +143,7 @@
   </div>
   <div nz-col nzSpan="16">
     <nz-form-item>
-      <nz-form-control [nzErrorTip]="confirmPasswordErrorTpl">
+      <nz-form-control [nzErrorTip]="confirmPasswordErrorTpl"  [nzValidateStatus]="registerForm">
         <nz-input-group [nzSuffix]="confirmPasswordSuffix">
           <input
             nz-input
@@ -164,7 +165,7 @@
           <ng-container *ngIf="control.hasError('required')">
             Vui lòng nhập lại mật khẩu
           </ng-container>
-          <ng-container *ngIf="registerForm.hasError('notSame')">
+          <ng-container *ngIf="registerForm.hasError('notSame') && registerForm.get('confirmPassword')?.touched">
             Mật khẩu không khớp
           </ng-container>
         </ng-template>

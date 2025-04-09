@@ -19,12 +19,7 @@
             <p>Please select a user to start chatting.</p>
           </div>
         }
-  
-        <div>
-          
-          <button nz-button nzType="default" nzShape="circle" (click)="toggleVideoCall()">
-            <i nz-icon nzType="video-camera"></i>
-          </button>
+        <div>  
           <button nz-button nzType="default" nzShape="circle" (click)="toggleSearch()">
             <i nz-icon nzType="search"></i>
           </button>
@@ -45,37 +40,33 @@
           <p>No messages yet</p>
         </div>
         <div *ngFor="let message of messages" class="mb-3">
-          <div [class]="message.senderId === currentUser.id ? 'text-end' : 'text-start'">
-            <nz-avatar
-              *ngIf="selectedUser && message.senderId !== currentUser.id; else group"
-              [nzSrc]="selectedUser.profilePictureUrl"
-              nzSize="small"
-              class="me-2"
-            ></nz-avatar>
-            <ng-template #group>
-              <nz-avatar *ngIf="selectedGroup && message.senderId !== currentUser.id"
-                 [nzSrc]="avatars[message.senderId]" nzSize="small" class="me-2">
-              </nz-avatar>
-            </ng-template>
-  
-            <div class="p-2 bg-light rounded-3 d-inline-block max-w-75">
-              <div class="text" *ngIf="message.content !== null">{{ message.content }}</div>
-             
+          <div [ngClass]="message.senderId === currentUser.id ? 'text-end from-me d-flex justify-content-end align-items-start' : 'text-start from-others d-flex justify-content-start align-items-start'">
+            
+            <!-- Three-dot menu -->
+            <div class="message-menu" *ngIf="message.senderId === currentUser.id">
+              <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+              <ul class="dropdown-menu">
+                <li>
+                  <a class="dropdown-item" (click)="updateMessage(message)">Cập nhật tin nhắn</a>
+                  <a class="dropdown-item" (click)="deleteMessage(message.id)">Thu hồi tin nhắn</a>
+                </li>
+              </ul>
+            </div>
+        
+            <!-- Tin nhắn -->
+            <div class="message-wrapper bg-light rounded-3 p-2 d-inline-block max-w-75 position-relative">
+              <div class="text" *ngIf="message.content">{{ message.content }}</div>
               <div class="file-content" *ngFor="let file of message.files">
                 <img *ngIf="isImage(file)" [src]="file.url" class="message-media" />
                 <video *ngIf="isVideo(file)" [src]="file.url" controls class="message-media"></video>
                 <audio *ngIf="isAudio(file)" [src]="file.url" controls class="message-media"></audio>
               </div>
-              
-              
-            </div>
-            <div>
-              <i class="bi bi-emoji-smile"></i>
-              <i class="bi bi-three-dots-vertical" (click)="updateMessage(message)"></i>
-              <i class="bi bi-reply-fill" (click)="deleteMessage(message.id)"></i>
             </div>
           </div>
         </div>
+        
       </div>
 
 
@@ -110,38 +101,45 @@
           <button class="close-button" (click)="isEditing = false">X</button>
 
       </div>
-      <div class="chat-input p-3 d-flex align-items-center border-top" *ngIf="selectedUser || selectedGroup">
-        <div> 
-          <button nz-button nzType="default" nzShape="circle" (mousedown)="startRecording()" (mouseup)="stopRecording()">
-            <i nz-icon nzType="audio"></i>
+      @if(isBlocked){
+        <div class="text-center text-muted">
+          <p>Bạn đã chặn người dùng này</p><button nz-button nzType="primary" (click)="unblockUser(selectedUser.id)">Bỏ chặn</button>
+        </div>
+      }@else{
+        <div class="chat-input p-3 d-flex align-items-center border-top" *ngIf="selectedUser || selectedGroup">
+          <div> 
+            <button nz-button nzType="default" nzShape="circle" (mousedown)="startRecording()" (mouseup)="stopRecording()">
+              <i nz-icon nzType="audio"></i>
+            </button>
+          </div>
+         
+          <div class="plus" nz-button nzType="default" nzShape="circle">
+              <label for="fileInputPlus" >
+                 
+                  <i nz-icon nzType="picture"></i>
+           
+                <input type="file" id="fileInputPlus" (change)="onFileSelected($event)" multiple style="display: none;" />
+              </label>
+            </div>
+            
+          
+          <input
+            nz-input
+            type="text"
+            placeholder="Type a message..."
+            [(ngModel)]="newMessage"
+            class="form-control me-2"
+            (keydown.enter)="sendMessage()"
+          />
+    
+          <!-- Nút gửi tin nhắn -->
+           
+          <button nz-button nzType="primary" [disabled]="isEditing && newMessage === originalMessage" (click)="sendMessage()" class="ms-2">
+            <i nz-icon nzType="send"></i>
           </button>
         </div>
-       
-        <div class="plus" nz-button nzType="default" nzShape="circle">
-            <label for="fileInputPlus" >
-               
-                <i nz-icon nzType="picture"></i>
-         
-              <input type="file" id="fileInputPlus" (change)="onFileSelected($event)" multiple style="display: none;" />
-            </label>
-          </div>
-          
-        
-        <input
-          nz-input
-          type="text"
-          placeholder="Type a message..."
-          [(ngModel)]="newMessage"
-          class="form-control me-2"
-          (keydown.enter)="sendMessage()"
-        />
-  
-        <!-- Nút gửi tin nhắn -->
-         
-        <button nz-button nzType="primary" [disabled]="isEditing && newMessage === originalMessage" (click)="sendMessage()" class="ms-2">
-          <i nz-icon nzType="send"></i>
-        </button>
-      </div>
+      }
+     
     </div>
   
     <!-- Chat Detail -->
@@ -156,7 +154,7 @@
           <nz-avatar *ngIf="selectedGroup" [nzSrc]="selectedGroup?.avatarUrl" nzSize="large" class="mb-2"></nz-avatar>
       </div>
       <hr />
-      <button *ngIf="selectedGroup" nz-button nzType="default" nzShape="circle" class="action-button" (click)="showAddMemberModal()">
+      <button *ngIf="selectedGroup" nz-button nzType="default" nzShape="circle" class="action-button" (click)="showAddMemberModal(selectedGroup.id)">
         <nz-modal [(nzVisible)]="addMemberVisible" nzTitle="Thêm thành viên " (nzOnCancel)="handleMemberCancel()"
          [nzFooter]="memberFooter">
           <ng-container *nzModalContent>
@@ -176,12 +174,21 @@
                     <div class="">
                       <h4>Danh sách người dùng</h4>
                       <div *ngFor="let user of users" class="">
-                        <label nz-checkbox [nzChecked]="user.isSelected" (nzCheckedChange)="toggleUser(user, $event)">
+                        <label nz-checkbox 
+                               [nzChecked]="user.isSelected" 
+                               [nzDisabled]="user.isMember" 
+                               (nzCheckedChange)="toggleUser(user, $event)">
+                          
                           <img [src]="user.profilePictureUrl" class="rounded-circle me-3 user-avatar" alt="Avatar"
-                            width="40" height="40" />
+                               width="40" height="40" />
+                          
                           <span class="user-name">{{ user.fullName }}</span>
+                      
+                          <!-- Hiển thị "Đã tham gia" nếu user đã ở trong nhóm -->
+                          <span *ngIf="user.isMember" class="text-muted ms-2">(Đã tham gia)</span>
                         </label>
                       </div>
+                      
                     </div>
 
                   </div>
@@ -248,8 +255,9 @@
   </nz-modal>
   <ng-template #customFooter>
     <div class="col-12">
-      <button class="col-6 btn btn-danger ">Xóa bạn</button>
-    <button class="col-6 btn btn-primary" (click)="blockUser(selectedUser.id)">Chặn</button>
+    <button class="btn btn-primary" (click)="isBlocked ? unblockUser(selectedUser.id) : blockUser(selectedUser.id)">
+      {{btnFriendShipText}}
+    </button>
     </div>
   </ng-template>
   <ng-template #memberFooter>
@@ -269,5 +277,4 @@
       </button>
     </div>
   </ng-template>
-  <app-video-call *ngIf="isVideoCallVisible"></app-video-call>
   <!-- <app-add-group></app-add-group> -->

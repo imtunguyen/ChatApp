@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 
-import { map, Observable } from "rxjs";
+import { BehaviorSubject, map, Observable, Subject } from "rxjs";
 import { send } from "process";
 import { environment } from "../../../environments/environment";
 import { Message } from "../models/message.module";
@@ -14,6 +14,9 @@ import { PaginatedResult } from "../../shared/models/pagination.module";
 export class MessageService {
   private apiUrl = `${environment.apiUrl}message`;
   private paginatedResult: PaginatedResult<Message[]> = {  };
+
+  private messageUpdateSubject = new Subject<void>();
+  messageUpdate = this.messageUpdateSubject.asObservable();
   constructor(private http: HttpClient) { }
 
   //add message
@@ -28,6 +31,10 @@ export class MessageService {
 
   deleteMessage(id: number) {
     return this.http.put(`${this.apiUrl}/delete?id=${id}`, null);
+  }
+
+  getLastMessage(senderId: string, recipientId: string) {
+    return this.http.get<Message>(`${this.apiUrl}/GetLastMessage?senderId=${senderId}&recipientId=${recipientId}`);
   }
 
   getMessagesThread(params: any, senderId: string, recipientId: string): Observable<PaginatedResult<Message[]>> {
@@ -88,5 +95,15 @@ export class MessageService {
       })
     );
   }
+
+  
+  notifyMessageUpdate(){
+    this.messageUpdateSubject.next();
+  }
+
+  markAsRead(messageId: number) {
+    return this.http.put(`${this.apiUrl}/markAsRead?messageId=${messageId}`, null);
+  }
+  
 
 }

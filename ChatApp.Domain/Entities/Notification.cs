@@ -2,11 +2,12 @@
 {
     public class Notification : BaseEntity
     {
-        public string? UserId { get; set; } 
-        public int ChatRoomId { get; set; }
+        public required string SenderId { get; set; }
+        public string? RecipientId { get; set; } 
+        public int? GroupId { get; set; }
         public string? MessageContent { get; set; }
         public bool IsRead { get; set; }
-        public DateTime CreatedAt { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
 
         // Navigation Properties
         public AppUser? User { get; set; }

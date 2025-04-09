@@ -18,16 +18,16 @@ namespace ChatApp.Infrastructure.Repositories
 
         public async Task<PagedList<Message>> GetAllAsync(MessageParams baseParams, bool tracked = false)
         {
-            var query = tracked 
-                ? _context.Messages.Include(m => m.Files).AsQueryable() 
+            var query = tracked
+                ? _context.Messages.Include(m => m.Files).AsQueryable()
                 : _context.Messages.Include(m => m.Files).AsNoTracking().AsQueryable();
-            if(!string.IsNullOrEmpty(baseParams.Search))
+            if (!string.IsNullOrEmpty(baseParams.Search))
             {
                 query = query.Where(m => m.Content != null &&
                             m.Content.ToLower().Contains(baseParams.Search.ToLower()));
             }
 
-            if(!string.IsNullOrEmpty(baseParams.OrderBy))
+            if (!string.IsNullOrEmpty(baseParams.OrderBy))
             {
                 query = baseParams.OrderBy switch
                 {
@@ -60,7 +60,7 @@ namespace ChatApp.Infrastructure.Repositories
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<PagedList<Message>> GetMessagesThreadAsync(MessageParams messageParams ,string senderId, string recipientId)
+        public async Task<PagedList<Message>> GetMessagesThreadAsync(MessageParams messageParams, string senderId, string recipientId)
         {
             var query = _context.Messages
                 .Include(m => m.Files)
@@ -73,8 +73,8 @@ namespace ChatApp.Infrastructure.Repositories
                 query = query.Where(c =>
                     c.Content.ToLower().Contains(messageParams.Search.ToLower()));
             }
-            
-            return await query.ApplyPaginationAsync(messageParams.PageNumber, messageParams.PageSize);                                      
+
+            return await query.ApplyPaginationAsync(messageParams.PageNumber, messageParams.PageSize);
         }
         public async Task<PagedList<Message>> GetMessagesGroupAsync(MessageParams messageParams, int groupId)
         {
@@ -82,7 +82,7 @@ namespace ChatApp.Infrastructure.Repositories
                 .Include(m => m.Files)
                 .Where(m => m.GroupId == groupId)
                 .OrderByDescending(m => m.SentAt)
-                .AsQueryable(); 
+                .AsQueryable();
             if (!string.IsNullOrEmpty(messageParams.Search))
             {
                 query = query.Where(c =>
@@ -102,7 +102,22 @@ namespace ChatApp.Infrastructure.Repositories
                 messageToUpdate.UpdatedAt = DateTimeOffset.UtcNow;
             }
         }
+        public async Task<Message?> GetUnreadMessageByIdAsync(int messageId)
+        {
+            return await _context.Messages
+                .FirstOrDefaultAsync(m => m.Id == messageId && !m.IsRead);
+        }
 
-        
+
+        public async Task<bool> MarkMessageAsReadAsync(int messageId)
+        {
+            var message = await _context.Messages.FirstOrDefaultAsync(m => m.Id == messageId && !m.IsRead);
+            if (message != null)
+            {
+                message.MarkAsRead();
+                return true;
+            }
+            return false;
+        }
     }
 }

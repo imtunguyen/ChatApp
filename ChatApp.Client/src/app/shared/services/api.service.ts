@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { catchError, Observable, throwError } from 'rxjs';
+import { HttpResponse } from '@microsoft/signalr';
 
 @Injectable({
   providedIn: 'root'
@@ -36,8 +37,23 @@ export class ApiService {
     );
   }
 
-  private handleError(error: any): Observable<never> {
+  private handleError(error: HttpErrorResponse): Observable<never> {
     console.error('API error:', error);
-    return throwError(() => new Error('Something went wrong; please try again later.'));
+    let errorMessage = 'Đã xảy ra lỗi. Vui lòng thử lại sau.';
+  
+    if (typeof error.error === 'string') {
+      errorMessage = error.error;
+    }
+    else if (error.error?.message) {
+      errorMessage = error.error.message;
+    }
+    // 👇 Thêm đoạn này để xử lý mảng lỗi từ backend
+    else if (Array.isArray(error.error) && error.error.length > 0 && error.error[0].description) {
+      errorMessage = error.error.map((err: any) => err.description).join('\n');
+    }
+  
+    return throwError(() => new Error(errorMessage));
   }
+  
+  
 }

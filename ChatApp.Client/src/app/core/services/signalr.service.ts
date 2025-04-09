@@ -2,27 +2,34 @@ import { Injectable } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { environment } from '../../../environments/environment';
 import { Message } from '../models/message.module';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 @Injectable({
   providedIn: 'root'
 })
 export class SignalRService {
   private hubConnection!: signalR.HubConnection;
   public onlineUsers$ = new BehaviorSubject<string[]>([]);
-  public newMessage$ = new BehaviorSubject<{ message : Message } | null>(null);
+  public newMessage$ = new Subject<Message | null>();
   private chatUrl = environment.chatUrl;
 
   constructor() { 
     
   }
 
-  startConnection() {
+  startConnection(userId: string) {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      console.error("⚠️ Không tìm thấy accessToken trong localStorage!");
+      return;
+    }
+    if (this.hubConnection && this.hubConnection.state === signalR.HubConnectionState.Connected) {
+      console.warn("⚠️ SignalR connection already started!");
+      return;
+    }
+
     this.hubConnection = new signalR.HubConnectionBuilder()
       .withUrl(this.chatUrl, {
-        accessTokenFactory: () => {
-          const token = localStorage.getItem('accessToken');
-          return token || '';
-        }
+        accessTokenFactory: () => token
       })
       .withAutomaticReconnect()
       .build();
@@ -30,10 +37,11 @@ export class SignalRService {
     this.hubConnection
       .start()
       .then(() => {
-        console.log('SignalR connection started');
+        console.log('✅ SignalR connection started');
+        this.hubConnection.invoke('Connect', userId)
         this.getOnlineUsers();
       })
-      .catch(err => console.error('Error connecting SignalR:', err));
+      .catch(err => console.error('❌ Error starting SignalR:', err));
     
     this.hubConnection.on('UserOnline', (userId: string) => {
       console.log("UserOnline", userId)
@@ -49,10 +57,15 @@ export class SignalRService {
         this.onlineUsers$.next(users);
       }
     });
-    
     this.hubConnection.on('ReceiveMessage', (message: Message) => {
-      console.log('ReceiveMessage:', message);
-      this.newMessage$.next({ message });
+      console.log('📩 [DEBUG] Nhận tin nhắn từ SignalR:', message);
+      if (message) {
+        this.newMessage$.next(message);
+      }
+    });
+
+    this.hubConnection.on('ReceiveNotification', (message: Message) => {
+      
     });
 
    
@@ -78,22 +91,35 @@ export class SignalRService {
     }, 2000); 
   }
 
-  sendMessage(message: string, userId?: string, groupId?: string){
+  sendMessage(message: Message) {
+    console.log("🔄 Kiểm tra trạng thái SignalR:", this.hubConnection.state);
+  
     if (this.hubConnection.state !== signalR.HubConnectionState.Connected) {
       console.error("❌ SignalR chưa kết nối, không thể gửi tin nhắn.");
       return;
     }
 
-    if (userId) {
-      this.hubConnection.invoke('SendPrivateMessage', userId, message)
+    if(message.groupId == null) {
+      this.hubConnection.invoke('SendPrivateMessage', message)
+        .then(() => console.log("✅ Tin nhắn riêng đã được gửi", message))
         .catch(err => console.error("❌ Gửi tin nhắn riêng thất bại:", err));
-    } else if (groupId) {
-      this.hubConnection.invoke('SendGroupMessage', groupId, message)
-        .catch(err => console.error("❌ Gửi tin nhắn nhóm thất bại:", err));
-    } else {
-      console.error("❌ Cần cung cấp userId hoặc groupId để gửi tin nhắn.");
     }
+  
+    // if (userId) {
+    //   console.log("📩 Gửi tin nhắn riêng đến", userId);
+    //   this.hubConnection.invoke('SendPrivateMessage', userId, message)
+    //     .then(() => console.log("✅ Tin nhắn riêng đã được gửi"))
+    //     .catch(err => console.error("❌ Gửi tin nhắn riêng thất bại:", err));
+    // } else if (groupId) {
+    //   console.log("📩 Gửi tin nhắn nhóm đến", groupId);
+    //   this.hubConnection.invoke('SendGroupMessage', groupId, message)
+    //     .then(() => console.log("✅ Tin nhắn nhóm đã được gửi"))
+    //     .catch(err => console.error("❌ Gửi tin nhắn nhóm thất bại:", err));
+    // } else {
+    //   console.error("❌ Cần cung cấp userId hoặc groupId để gửi tin nhắn.");
+    // }
   }
+  
 
   joinGroup(groupId: string) {
     this.hubConnection.invoke('JoinChatRoom', groupId)

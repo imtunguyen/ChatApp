@@ -32,6 +32,9 @@ export class RegisterPageComponent implements OnInit {
 
   ngOnInit() {
     this.initForm();
+    this.registerForm.get('password')?.valueChanges.subscribe(() => {
+      this.registerForm.get('confirmPassword')?.updateValueAndValidity();
+    });
   }
 
   initForm(): void {
@@ -49,12 +52,15 @@ export class RegisterPageComponent implements OnInit {
     );
   }
 
-  checkPasswords(group: FormGroup): { [key: string]: any } | null {
+  checkPasswords = (group: FormGroup): { [key: string]: any } | null => {
     const password = group.get('password')?.value;
     const confirmPassword = group.get('confirmPassword')?.value;
-    return password === confirmPassword ? null : { notSame: true };
+    if (password && confirmPassword && password !== confirmPassword) {
+      return { notSame: true };
+    }
+    return null;
   }
-
+  
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
@@ -70,7 +76,8 @@ export class RegisterPageComponent implements OnInit {
 
   onRegister() {
     if (this.registerForm.invalid) {
-      this.toastrService.showError('Vui lòng điền đầy đủ thông tin');
+      this.registerForm.markAllAsTouched(); // hiển thị lỗi rõ ràng
+      this.toastrService.showError('Vui lòng kiểm tra lại thông tin đăng ký!');
       return;
     }
     const formData = new FormData();
@@ -92,8 +99,12 @@ export class RegisterPageComponent implements OnInit {
         
       },
       error: (error) => {
-        console.error('Registration failed', error);
-      },
+        console.error('Registration failed:', error);
+    
+        // Hiển thị message cụ thể từ backend
+        this.toastrService.showError(error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+      }
+      
     });
   }
   navigateToLogin() {

@@ -10,6 +10,7 @@ namespace ChatApp.Application.DTOs.Message
         public MessageStatus Status { get; set; }
         public MessageType Type { get; set; }
         public bool IsDeleted { get; set; }
+        public bool IsRead { get; set; }
         public List<MessageFileDto> Files { get; set; } = new List<MessageFileDto>();
 
     }

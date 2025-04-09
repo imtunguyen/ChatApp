@@ -81,32 +81,65 @@ $light-bg: #ffffff;
         word-wrap: break-word;
         transition: background-color 0.3s ease;
       }
-
+    
       &.text-end .bg-light {
         background-color: #007bff !important;
         color: white !important;
         border-bottom-right-radius: 0;
       }
-
+    
       &.text-start .bg-light {
         background-color: #f1f1f1 !important;
         color: #333 !important;
         border-bottom-left-radius: 0;
       }
-
+    
       &.text-end .bg-light:hover {
         background-color: #0056b3;
       }
-
+    
       &.text-start .bg-light:hover {
         background-color: #e0e0e0;
       }
     }
-
+    
+    .message-wrapper {
+      background-color: #f1f1f1;
+      border-radius: 18px;
+      padding: 10px;
+      font-size: 1rem;
+      word-wrap: break-word;
+      transition: background-color 0.3s ease;
+    }
+    
+    .message-menu {
+      visibility: hidden;
+      button {
+        padding: 2px 4px;
+      }
+    }
+    
+    // Hiển thị menu khi hover vào message-container
+    .d-flex:hover .message-menu {
+      visibility: visible;
+    }
+    
+    // Tuỳ hướng tin nhắn (tách ra ngoài .message-wrapper)
+    .from-me .message-menu {
+      order: 0;
+      margin-right: 8px;
+    }
+    
+    .from-others .message-menu {
+      order: 2;
+      margin-left: 8px;
+    }
+    
     .message-media {
       max-width: 200px;
       margin-bottom: 10px;
     }
+    
   }
 
   .chat-input {

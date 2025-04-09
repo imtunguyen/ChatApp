@@ -59,11 +59,16 @@
         transform: scale(0.98);
       }
 
+      &.unread {
+        font-weight: bold;
+        background-color: #f0f0f0;
+      }
+
       .user-avatar {
         border: 2px solid #007bff;
         transition: transform 0.3s ease;
         position: relative;
-
+        object-fit: cover;
         &:hover {
           transform: scale(1.1);
         }
@@ -102,7 +107,10 @@
           color: #777;
           font-size: 14px;
         }
+        
       }
+
+      
     }
   }
 }
@@ -202,21 +210,16 @@
       gap: 10px;
       margin-bottom: 15px;
   
-      .camera-btn {
-        background: #f0f2f5;
-        border: none;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: background 0.3s;
-  
-        &:hover {
-          background: #e4e6eb;
+      .avatar-container {
+        position: relative;
+        display: inline-block;
+        .avatar {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          border: 3px solid #4690de;
         }
+        
       }
   
       .group-name {

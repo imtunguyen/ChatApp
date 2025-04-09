@@ -10,7 +10,7 @@ namespace ChatApp.Domain.ValueObjects
         public EmailAddress(string value)
         {
             if(string.IsNullOrEmpty(value) || !IsValidEmail(value))
-                throw new BadRequestException("Invalid email address");
+                throw new BadRequestException("Vui lòng nhập email hợp lệ");
             
             Value = value;
         }

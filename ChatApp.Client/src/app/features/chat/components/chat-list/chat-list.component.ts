@@ -12,13 +12,16 @@ import { ToastrService } from '../../../../shared/services/toastr.service';
 import { FriendShipStatus } from '../../../../core/models/enum/friendship-status';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { SignalRService } from '../../../../core/services/signalr.service';
-import { Subscription } from 'rxjs';
+import { forkJoin, Subject, Subscription, switchMap, takeUntil, tap } from 'rxjs';
 import { GroupService } from '../../../../core/services/group.service';
 import { Group } from '../../../../core/models/group.module';
 import { FriendShip } from '../../../../core/models/friendship.module';
+import { NzTabsModule } from 'ng-zorro-antd/tabs';
+import { NzSelectModule } from 'ng-zorro-antd/select';
+import { MessageService } from '../../../../core/services/message.service';
 @Component({
   selector: 'app-chat-list',
-  imports: [NzInputModule, FormsModule, CommonModule, NzAvatarModule, NzIconModule, NzModalModule, ReactiveFormsModule, NzCheckboxModule],
+  imports: [NzInputModule, NzTabsModule, NzSelectModule, FormsModule, CommonModule, NzAvatarModule, NzIconModule, NzModalModule, ReactiveFormsModule, NzCheckboxModule],
   templateUrl: './chat-list.component.html',
   styleUrl: './chat-list.component.scss'
 })
@@ -26,6 +29,7 @@ export class ChatListComponent {
   @Output() userSelected = new EventEmitter<any>();
   @Output() groupSelected = new EventEmitter<any>();
   users: User[] = [];
+  allUsers: User[] = [];
   groups: Group[] = [];
   selectedUsers: any[] = [];
   selectedUserIds: string[] = [];
@@ -33,12 +37,15 @@ export class ChatListComponent {
   currentUser: any;
   userGroups: User[] = [];
   friendsList: User[] = [];
+  blockedList: User[] = [];
+  filteredUsers: User[] = [];
   filteredFriendsList: User[] = [];
   filteredGroups: Group[] = [];
  
+  lastMessage: any;
   newMessageFrom: string | null = null;
   protected value = '';
-  protected name = '';
+  
   groupForm!: FormGroup;
   isSelectedUser = false;
   isFriendVisible = false;
@@ -47,40 +54,63 @@ export class ChatListComponent {
   selectedFile: File | null = null;
   previewImage: string | ArrayBuffer | null = null;
   searchText: string = '';
- 
+  selectedCategory = 'friends'; // Mặc định chọn "Bạn bè"
+  categoryOptions = [
+    { value: 'friends', label: 'Bạn bè' },
+    { value: 'blocked', label: 'Đã chặn' }
+  ];
   search: string = '';
-  protected onModelChange(value: string): void {
-    console.log("Value changed:", value);
-    
-  }
+  name: string = '';
+  selectedTabIndex = 0;
   private onlineUsersSubscription!: Subscription;
 
-
+  private destroy$ = new Subject<void>();
   private authService = inject(AuthService);
   private friendShipService = inject(FriendShipService);
+  private messageService = inject(MessageService);
   private groupService = inject(GroupService);
   private toastService = inject(ToastrService);
+  private signalRService = inject(SignalRService);
   private signalR = inject(SignalRService);
   constructor(private fb: FormBuilder, private cdr: ChangeDetectorRef) {
-    this.currentUser = this.authService.getCurrentUser();
    }
   ngOnInit(): void {
-    this.signalR.startConnection();
+    this.currentUser = this.authService.getCurrentUser();
+    if (!this.currentUser) {
+      this.currentUser = this.authService.getCurrentUser();
+    }
+    this.signalR.startConnection(this.currentUser.id);
     if (!this.currentUser) {
       console.warn("Current user is undefined, waiting for authentication...");
       return;
     }
     this.loadUsers();
-    this.loadFriends();
     
-
-  
     this.loadFriendShipStatus();
+   
     this.groupForm = this.initializeGroupForm();
-    this.loadGroups();
     this.groupService.groupUpdate.subscribe(() => {
       this.loadGroups();
     });
+    
+    this.friendShipService.friendShipUpdate.subscribe(() => {
+      this.refreshFriendsAndBlockedList();
+      this.selectedTabIndex = 0;
+    });
+    
+    this.messageService.messageUpdate.subscribe(() => {
+      console.log("Message update event received");
+      this.refreshFriendsAndBlockedList();
+    });
+
+    this.signalRService.newMessage$
+    
+    .subscribe({
+      next: (res) => {
+       this.refreshFriendsAndBlockedList();
+      }
+    });
+    
 
     if (this.onlineUsersSubscription) {
       this.onlineUsersSubscription.unsubscribe();
@@ -101,6 +131,28 @@ export class ChatListComponent {
   ngOnDestroy(): void {
     if (this.onlineUsersSubscription) {
       this.onlineUsersSubscription.unsubscribe();
+    }
+    this.destroy$.next();
+   this.destroy$.complete();
+  }
+
+  private refreshFriendsAndBlockedList() {
+    this.loadFriends();
+    this.loadBlockedList();
+  }
+  
+  
+
+  onCategoryChange(value: string) {
+    console.log('Selected category:', value);
+    this.selectedCategory = value;
+    if(value === 'blocked') {
+      this.filteredFriendsList = [...this.blockedList];
+      console.log('Blocked list:', this.blockedList);
+    }
+    else {
+      this.filteredFriendsList = [...this.friendsList];
+      console.log('Friends list:', this.friendsList);
     }
   }
 
@@ -126,38 +178,100 @@ export class ChatListComponent {
     });
   }
 
+  getLastMessage(senderId: string, recipientId: string) {
+    this.messageService.getLastMessage(senderId, recipientId).subscribe((message) => {
+      console.log("Last message:", message);
+      if (message) {
+        this.lastMessage = message.senderId === this.currentUser.id ? message.recepientId : message.senderId;
+      } else {
+        this.lastMessage = null;
+      }
+    });
+  }
+
   loadUsers() {
+    this.filteredUsers = [];
     this.authService.getUsers().subscribe((users) => {
-      this.users = users.filter((user) => user.id !== this.currentUser.id);
+      this.users =  users.filter((user) => user.id !== this.currentUser.id);;
+      this.filteredUsers = [...this.users];
    
     });
 
   }
 
+  loadBlockedList() {
+    this.blockedList = [];
+    this.friendShipService.getFriendShipsByUser(this.currentUser.id, FriendShipStatus.Blocked).subscribe(
+      (res: FriendShip[]) => {
+        res.forEach(friendship => {
+          if (friendship.requesterId === this.currentUser.id) {
+            this.authService.getUserById(friendship.addresseeId).subscribe(
+              (user: User) => {
+                this.blockedList= [...this.blockedList, user];
+              }
+            );
+          }
+        });
+      }
+    );
+  }
+
   loadFriends() {
-      this.friendShipService.getFriends(this.currentUser.id).subscribe(
-        (res: FriendShip[]) => {
-          res.forEach(friendship => {
-            if (friendship.requesterId === this.currentUser.id) {
-              this.authService.getUserById(friendship.addresseeId).subscribe(
-                (user: User) => {
-                  this.friendsList.push(user);
-                  this.filteredFriendsList = [...this.friendsList];
-                }
-              );
-            } else {
-              this.authService.getUserById(friendship.requesterId).subscribe(
-                (user: User) => {
-                  this.friendsList.push(user);
-                  this.filteredFriendsList = [...this.friendsList];
-                }
-              );
-            }
-          });
-        }
-      );
-        
-    }
+    this.friendsList = [];
+    this.filteredFriendsList = [];
+  
+    this.friendShipService.getFriends(this.currentUser.id).subscribe(
+      (res: FriendShip[]) => {
+        const requests = res.map(friendship => {
+          const userId = (friendship.requesterId === this.currentUser.id)
+            ? friendship.addresseeId
+            : friendship.requesterId;
+  
+          return this.authService.getUserById(userId).pipe(
+            tap((user: User) => {
+              user.lastMessage = '';
+              this.friendsList.push(user);
+            }),
+            switchMap((user: User) =>
+              this.messageService.getLastMessage(this.currentUser.id, user.id).pipe(
+                tap((message) => {
+                  if (message) {
+                    // Cờ thông báo nếu có tin chưa đọc
+                    if (!message.isRead && message.senderId !== this.currentUser.id) {
+                      user.hasNewMessage = true;
+                    }
+  
+                    // Gán nội dung tin nhắn
+                    user.lastMessage = (message.senderId === this.currentUser.id)
+                      ? `Bạn: ${message.content}`
+                      : message.content;
+  
+                    // Gán thời gian tin nhắn cuối
+                    user.lastMessageTime = new Date(message.sentAt);
+                  } else {
+                    user.lastMessage = "Không có tin nhắn";
+                    user.lastMessageTime = new Date(0); // Giá trị thấp nhất để sort
+                  }
+                })
+              )
+            )
+          );
+        });
+  
+        forkJoin(requests).subscribe(() => {
+          // Sắp xếp danh sách theo thời gian tin nhắn mới nhất
+          this.filteredFriendsList = [...this.friendsList].sort((a, b) =>
+            b.lastMessageTime.getTime() - a.lastMessageTime.getTime()
+          );
+  
+          console.log("Updated Friends List with Last Messages:", this.filteredFriendsList);
+        });
+      }
+    );
+  }
+  
+  
+
 
   loadGroups() {
     this.groupService.getGroupsByUser(this.currentUser.id).subscribe((groups) => {
@@ -227,6 +341,24 @@ export class ChatListComponent {
   }
 
   selectUser(user: any) {
+    user.hasNewMessage = false; 
+    
+    this.messageService.getLastMessage(this.currentUser.id, user.id).subscribe((message) => {
+      console.log("Last message:", message.id);
+      if(message.senderId == this.currentUser.id) {
+        return;
+      } else {
+        this.messageService.markAsRead(message.id).subscribe({
+        
+          next: () => console.log("Messages marked as read"),
+          error: err => console.error("Error marking messages as read", err)
+        });
+      }
+      
+    }
+  )
+   
+  
     console.log('Selected User:', user);
     this.userSelected.emit(user);
   }
@@ -248,6 +380,19 @@ export class ChatListComponent {
       this.filteredGroups = this.groups.filter((group) => group.name.toLowerCase().includes(this.searchText.toLowerCase()));
     }
   }
+  onSearchUserChange() {
+    if (!this.name.trim()) {
+      this.filteredUsers = [...this.users];
+      
+    } else {
+      this.filteredUsers = this.users.filter((user) =>
+        user.fullName.toLowerCase().includes(this.name.toLowerCase())
+      );
+    }
+  
+    
+  }
+  
 
   addFriend(userId: string) {
     console.log('Add friend:', userId);
