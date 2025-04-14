@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 
 namespace ChatApp.Infrastructure.Configurations
@@ -23,54 +24,51 @@ namespace ChatApp.Infrastructure.Configurations
                 .AddDefaultTokenProviders();
 
             // JWT Authentication setup
-            services
-                .AddAuthentication(options =>
-                {
-                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                })
-                .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, o =>
-                {
-                    TokenConfig token = new TokenConfig();
-                    configuration.GetSection(nameof(TokenConfig)).Bind(token);
-                    var key = Encoding.UTF8.GetBytes(token.SecretKey);
-                    
-                    o.SaveToken = true;
-                    o.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateAudience = true,
-                        ValidateIssuer = true, 
-                        ValidateLifetime = true,
-                        ValidateIssuerSigningKey = true,
-                        ValidIssuer = token.Issuer,
-                        ValidAudience = token.Audience,
-                        IssuerSigningKey = new SymmetricSecurityKey(key),
-                        ClockSkew = TimeSpan.Zero,
-                    };
-                    o.Events = new JwtBearerEvents
-                    {
-                        OnAuthenticationFailed = context =>
-                        {
-                            if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
-                            {
-                                context.Response.Headers.Append("IS-TOKEN-EXPRIED", "true");
-                            }
-                            return Task.CompletedTask;
-                        },
-                        OnMessageReceived = context =>
-                        {
-                            var accessToken = context.Request.Query["access_token"];
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+             .AddJwtBearer(options =>
+             {
+                 var jwtKey = configuration["TokenConfig:SecretKey"];
+                 if (string.IsNullOrEmpty(jwtKey))
+                 {
+                     throw new ArgumentNullException("Jwt:Key", "JWT Key cannot be null or empty.");
+                 }
 
-                            var path = context.HttpContext.Request.Path;
-                            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chat"))
-                            {
-                                context.Token = accessToken;
-                            }
-                            return Task.CompletedTask;
-                        }
-                    };
-                });
+                 options.TokenValidationParameters = new TokenValidationParameters
+                 {
+                     ValidateIssuer = true,
+                     ValidateAudience = true,
+                     ValidateLifetime = true,
+                     ValidateIssuerSigningKey = true,
+                     ValidIssuer = configuration["TokenConfig:Issuer"],
+                     ValidAudience = configuration["TokenConfig:Audience"],
+                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+                 };
+             
+                 options.Events = new JwtBearerEvents
+                 {
+                     OnMessageReceived = context =>
+                     {
+                         var accessToken = context.Request.Query["access_token"];
+                         var path = context.HttpContext.Request.Path;
+
+                         Console.WriteLine($"🔍 Incoming SignalR path: {path}");
+                         Console.WriteLine($"🔐 AccessToken received: {accessToken}");
+
+                         if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chat"))
+                         {
+                             context.Token = accessToken;
+                         }
+                         return Task.CompletedTask;
+                     },
+                     OnTokenValidated = context =>
+                     {
+                         var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                         Console.WriteLine($"Token validated: UserId is {userId}");
+                         return Task.CompletedTask;
+                     }
+                 };
+             });
+
         }
     }
 }

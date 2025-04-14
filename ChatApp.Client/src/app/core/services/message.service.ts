@@ -37,6 +37,10 @@ export class MessageService {
     return this.http.get<Message>(`${this.apiUrl}/GetLastMessage?senderId=${senderId}&recipientId=${recipientId}`);
   }
 
+  getLastMessageGroup(groupId: number) {
+    return this.http.get<Message>(`${this.apiUrl}/GetLastMessageGroup?groupId=${groupId}`);
+  }
+
   getMessagesThread(params: any, senderId: string, recipientId: string): Observable<PaginatedResult<Message[]>> {
     let httpParams = new HttpParams();
     if (params.pageNumber) {

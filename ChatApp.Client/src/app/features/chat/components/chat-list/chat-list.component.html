@@ -20,13 +20,13 @@
             <input nz-input [autofocus]="true" [nzSize]="'default'" (ngModelChange)="onSearchUserChange()" placeholder="Nhập tên hoặc email"
               [(ngModel)]="name" />
 
-            <div class="users">
-              <h4>Danh sách người dùng</h4>
-              <div *ngFor="let user of filteredUsers" class="user-item d-flex align-items-center">
-                <img [src]="user.profilePictureUrl" class="rounded-circle user-avatar me-2" alt="Avatar" />
-                <span class="user-name flex-grow-1">{{ user.fullName }}</span>
-
-                <button *ngIf="getFriendShipStatus(user.id) == 0" nz-button nzType="primary" class="add-btn"
+              <div class="users">
+                <h4>Danh sách người dùng</h4>
+                <div *ngFor="let user of displayedUsers" class="user-item d-flex align-items-center">
+                  <img [src]="user.profilePictureUrl" class="rounded-circle user-avatar me-2" alt="Avatar" />
+                  <span class="user-name flex-grow-1">{{ user.fullName }}</span>
+              
+                  <button *ngIf="getFriendShipStatus(user.id) == 0" nz-button nzType="primary" class="add-btn"
                   (click)="addFriend(user.id)">
                   Thêm
                 </button>
@@ -39,10 +39,12 @@
                   </button>
 
                 </div>
-
-                <i class="bi bi-x-circle-fill remove-icon text-danger ms-2"></i>
+              
+                  <!-- Nút X để ẩn user hiện tại -->
+                  <i class="bi bi-x-circle-fill remove-icon text-danger ms-2" (click)="removeUser(user.id)"></i>
+                </div>
               </div>
-            </div>
+              
 
           </ng-container>
         </nz-modal>
@@ -56,11 +58,11 @@
           [nzFooter]="customFooter">
           <ng-container *nzModalContent>
             <div class="create-group">
-              <form [formGroup]="groupForm">
+              <form [formGroup]="groupForm" >
                 <div class="group-header">
                 
                     <div class="avatar-container">
-                      <img [src]="previewImage || 'https://res.cloudinary.com/dlhwuvhhp/image/upload/v1734098200/user_rvnqoh.png'" class="avatar" alt="Avatar">
+                      <img [src]="previewImage || 'https://res.cloudinary.com/dlhwuvhhp/image/upload/v1744597274/user-07-512_hknxaa.webp'" class="avatar" alt="Avatar">
                       <label class="edit-avatar">
                         <nz-icon nzType="camera" nzTheme="outline"></nz-icon>
                         <input
@@ -83,7 +85,7 @@
                 <div class="group-content">
                   <div class="group-search">
                     <nz-input-group [nzSuffix]="suffixIconSearch">
-                      <input nz-input [(ngModel)]="search" [ngModelOptions]="{standalone: true}"
+                      <input nz-input [(ngModel)]="name"  (ngModelChange)="onSearchUserChange()" [ngModelOptions]="{standalone: true}"
                         placeholder="Tìm kiếm" />
                     </nz-input-group>
                     <ng-template #suffixIconSearch>
@@ -94,7 +96,7 @@
                   <div class="group-main">
                     <div class="group-users">
                       <h4>Danh sách người dùng</h4>
-                      <div *ngFor="let user of users" class="user-item">
+                      <div *ngFor="let user of filteredUsers" class="user-item">
                         <label nz-checkbox [(ngModel)]="user.isSelected" [ngModelOptions]="{standalone: true}"
                           (ngModelChange)="toggleUser(user)">
                           <img [src]="user.profilePictureUrl" class="rounded-circle me-3 user-avatar" alt="Avatar"
@@ -159,12 +161,12 @@
 
           <div class="d-flex flex-column">
             <div class="group-name">{{ group.name }}</div>
-            <small class="last-message"></small>
+            <small class="last-message">{{group.lastMessage}}</small>
           </div>
         </li>
       </ul>
     </nz-tab>
-    <nz-tab nzTitle="Chưa đọc">Content of Tab Pane 2</nz-tab>
+   
 
       <nz-tab [nzTitle]="tabTemplate">
         <ng-template #tabTemplate>

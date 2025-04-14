@@ -2,7 +2,7 @@ import { inject, Injectable } from "@angular/core";
 import { ApiService } from "../../shared/services/api.service";
 import { FriendShip, updateFriendShip } from "../models/friendship.module";
 import { FriendShipStatus } from "../models/enum/friendship-status";
-import { BehaviorSubject } from "rxjs";
+import { BehaviorSubject, catchError, Observable, of, throwError } from "rxjs";
 
 
 @Injectable({
@@ -32,9 +32,17 @@ export class FriendShipService {
     console.log(friendship);
     return this.api.put('friendship/update', friendship);
   }
-  getFriendShips(requesterId: string, addresseeId: string){
-    return this.api.get<FriendShip>(`friendship/get?requesterId=${requesterId}&addresseeId=${addresseeId}`);
+  getFriendShips(requesterId: string, addresseeId: string): Observable<FriendShip | null> {
+    return this.api.get<FriendShip>(`friendship/get?requesterId=${requesterId}&addresseeId=${addresseeId}`).pipe(
+      catchError(err => {
+        if (err.status === 404) {
+          return of(null); // Không có friendship -> trả null
+        }
+        return throwError(() => err); // Các lỗi khác vẫn ném ra
+      })
+    );
   }
+  
 
   getFriendShipsByUser(userId: string, status: number){
     return this.api.get<FriendShip[]>(`friendship/GetByUserId?userId=${userId}&status=${status}`);

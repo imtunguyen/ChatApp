@@ -60,12 +60,21 @@ namespace ChatApp.Infrastructure.Repositories
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<Message?> GetLastMessageGroup(int groupId)
+        {
+            return await _context.Messages
+                .Include(m => m.Files)
+                .Where(m => m.GroupId == groupId)
+                .OrderByDescending(m => m.SentAt)
+                .FirstOrDefaultAsync();
+        }   
+
         public async Task<PagedList<Message>> GetMessagesThreadAsync(MessageParams messageParams, string senderId, string recipientId)
         {
             var query = _context.Messages
                 .Include(m => m.Files)
                 .Where(m => (m.SenderId == senderId && m.RecipientId == recipientId)
-                    || (m.SenderId == recipientId && m.RecipientId == senderId) && m.IsDeleted == false)
+                    || (m.SenderId == recipientId && m.RecipientId == senderId))
                 .OrderByDescending(m => m.SentAt)
                 .AsQueryable();
             if (!string.IsNullOrEmpty(messageParams.Search))

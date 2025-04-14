@@ -25,6 +25,10 @@ namespace ChatApp.Presentation.Controllers
         public async Task<ActionResult<FriendShipDto>> GetFriendShip(string requesterId, string addresseeId)
         {
             var friendShip = await _friendShipService.GetFriendShip(requesterId, addresseeId);
+            if (friendShip == null)
+            {
+                return NotFound();
+            }
             return Ok(friendShip);
         }
         [HttpGet("GetByUserId")]

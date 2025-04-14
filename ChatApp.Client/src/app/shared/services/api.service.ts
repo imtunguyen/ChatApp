@@ -15,9 +15,10 @@ export class ApiService {
 
   get<T>(endpoint: string): Observable<T> {
     return this.http.get<T>(`${this.apiUrl}${endpoint}`).pipe(
-      catchError(this.handleError)
+      catchError(this.handleError.bind(this)) // 👉 bind để giữ context `this`
     );
   }
+  
 
   post<T>(endpoint: string, body: any): Observable<T> {
     return this.http.post<T>(`${this.apiUrl}${endpoint}`, body).pipe(
@@ -38,17 +39,18 @@ export class ApiService {
   }
 
   private handleError(error: HttpErrorResponse): Observable<never> {
-    console.error('API error:', error);
+    // ❌ Không log lỗi nếu là 404
+    if (error.status !== 404) {
+      console.error('API error:', error);
+    }
+  
     let errorMessage = 'Đã xảy ra lỗi. Vui lòng thử lại sau.';
   
     if (typeof error.error === 'string') {
       errorMessage = error.error;
-    }
-    else if (error.error?.message) {
+    } else if (error.error?.message) {
       errorMessage = error.error.message;
-    }
-    // 👇 Thêm đoạn này để xử lý mảng lỗi từ backend
-    else if (Array.isArray(error.error) && error.error.length > 0 && error.error[0].description) {
+    } else if (Array.isArray(error.error) && error.error[0]?.description) {
       errorMessage = error.error.map((err: any) => err.description).join('\n');
     }
   

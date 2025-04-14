@@ -106,6 +106,14 @@ namespace ChatApp.Application.Services.Implementations
             return MessageMapper.EntityToMessageDto(message);
         }
 
+        public async Task<MessageDto?> GetLastMessageGroup(int groupId)
+        {
+            var message = await _unitOfWork.MessageRepository.GetLastMessageGroup(groupId);
+            if (message == null) return null;
+            return MessageMapper.EntityToMessageDto(message);
+        }
+
+
         public async Task<PagedList<MessageDto>> GetMessagesThreadAsync(MessageParams messageParams, string senderId, string recipientId)
         {
             var messages = await _unitOfWork.MessageRepository.GetMessagesThreadAsync(messageParams, senderId, recipientId);

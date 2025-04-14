@@ -4,7 +4,6 @@ using ChatApp.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-
 namespace ChatApp.Infrastructure.Configurations
 {
     public static class AppConfig
@@ -17,7 +16,7 @@ namespace ChatApp.Infrastructure.Configurations
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<ICloudinaryService, CloudinaryService>();
-
+           
 
             // Configure token expiration for ASP.NET Identity tokens
             services.Configure<DataProtectionTokenProviderOptions>(options =>

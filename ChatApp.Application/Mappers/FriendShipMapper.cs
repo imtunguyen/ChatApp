@@ -28,6 +28,10 @@ namespace ChatApp.Application.Mappers
         }
         public static FriendShipDto FriendShipToDto(FriendShip friendShip)
         {
+            if(friendShip == null)
+            {
+                return null;
+            }
             return new FriendShipDto
             {
                 Id = friendShip.Id,
@@ -38,5 +42,6 @@ namespace ChatApp.Application.Mappers
                 AcceptedAt = friendShip.AcceptedAt
             };
         }
+        
     }
 }

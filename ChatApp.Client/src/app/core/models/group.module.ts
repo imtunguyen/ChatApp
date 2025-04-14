@@ -5,6 +5,9 @@ export interface Group {
   creator: string;
   createdAt: Date;
   updatedAt: Date;
+  lastMessage: string;
+  lastMessageTime: Date;
+  hasNewMessage : boolean;
 }
 
 export interface AddGroup {

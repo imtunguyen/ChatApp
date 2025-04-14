@@ -10,14 +10,16 @@ var builder = WebApplication.CreateBuilder(args);
 // Add Database Configuration
 builder.Services.AddDbConfig(builder.Configuration);
 
+// Add Authentication Configuration
+builder.Services.AddAuthConfig(builder.Configuration);
+
 // Add Dependency Injection for Services
 builder.Services.AddDIConfig(builder.Configuration);
 
 // Add Application Settings Configuration
 builder.Services.AddAppConfig(builder.Configuration);
 
-// Add Authentication Configuration
-builder.Services.AddAuthConfig(builder.Configuration);
+
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

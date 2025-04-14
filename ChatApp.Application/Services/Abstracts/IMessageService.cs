@@ -12,6 +12,7 @@ namespace ChatApp.Application.Services.Abstracts
         Task<MessageDto> UpdateMessageAsync(MessageUpdateDto messageUpdateDto);
         Task<bool> DeleteMessageAsync(Expression<Func<Message, bool>> expression);
         Task<MessageDto?> GetLastMessageAsync(string senderId, string recipientId);
+        Task<MessageDto?> GetLastMessageGroup(int groupId);
         Task<PagedList<MessageDto>> GetMessagesThreadAsync(MessageParams messageParams, string senderId, string recipientId);
         Task<MessageDto> GetMessageByIdAsync(int id);
         Task<PagedList<MessageDto>> GetMessagesGroupAsync(MessageParams messageParams, int groupId); 

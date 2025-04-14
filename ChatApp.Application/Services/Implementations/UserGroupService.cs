@@ -29,7 +29,7 @@ namespace ChatApp.Application.Services.Implementations
             foreach (var userGroupAddDto in userGroupAddDtos)
             {
                 var memberRole = await _roleManager.FindByNameAsync("Member");
-                if(userGroupAddDto.RoleId == "0")
+                if(userGroupAddDto.RoleId == null || userGroupAddDto.RoleId == "0")
                 {
                     userGroupAddDto.RoleId = memberRole.Id;
 

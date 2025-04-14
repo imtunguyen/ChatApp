@@ -10,6 +10,8 @@ export class SignalRService {
   private hubConnection!: signalR.HubConnection;
   public onlineUsers$ = new BehaviorSubject<string[]>([]);
   public newMessage$ = new Subject<Message | null>();
+  public connectionEstablished$ = new BehaviorSubject<boolean>(false);
+
   private chatUrl = environment.chatUrl;
 
   constructor() { 
@@ -29,6 +31,7 @@ export class SignalRService {
 
     this.hubConnection = new signalR.HubConnectionBuilder()
       .withUrl(this.chatUrl, {
+        
         accessTokenFactory: () => token
       })
       .withAutomaticReconnect()
@@ -38,11 +41,19 @@ export class SignalRService {
       .start()
       .then(() => {
         console.log('✅ SignalR connection started');
-        this.hubConnection.invoke('Connect', userId)
+        this.connectionEstablished$.next(true);
         this.getOnlineUsers();
       })
-      .catch(err => console.error('❌ Error starting SignalR:', err));
-    
+      .catch(err => {
+        console.error('❌ Error starting SignalR:', err);
+        this.connectionEstablished$.next(false); 
+      });
+
+      this.hubConnection.onreconnected(() => {
+
+        this.getOnlineUsers();
+      });
+      
     this.hubConnection.on('UserOnline', (userId: string) => {
       console.log("UserOnline", userId)
       this.updateOnlineUsers(userId, true);
@@ -81,15 +92,14 @@ export class SignalRService {
   }
 
   getOnlineUsers() {
-    setTimeout(() => {
-      if (this.hubConnection.state === signalR.HubConnectionState.Connected) {
-        this.hubConnection.invoke('GetOnlineUsers')
-          .catch(err => console.error(err));
-      } else {
-        console.warn("SignalR connection is not established yet, retrying in 2 seconds...");
-      }
-    }, 2000); 
+    if (this.hubConnection.state === signalR.HubConnectionState.Connected) {
+      this.hubConnection.invoke('GetOnlineUsers')
+        .catch(err => console.error(err));
+    } else {
+      console.warn("SignalR chưa sẵn sàng, bỏ qua getOnlineUsers");
+    }
   }
+  
 
   sendMessage(message: Message) {
     console.log("🔄 Kiểm tra trạng thái SignalR:", this.hubConnection.state);
@@ -98,31 +108,23 @@ export class SignalRService {
       console.error("❌ SignalR chưa kết nối, không thể gửi tin nhắn.");
       return;
     }
-
+    console.log("🔄 Gửi tin nhắn qua SignalR:", message);
     if(message.groupId == null) {
       this.hubConnection.invoke('SendPrivateMessage', message)
         .then(() => console.log("✅ Tin nhắn riêng đã được gửi", message))
         .catch(err => console.error("❌ Gửi tin nhắn riêng thất bại:", err));
     }
-  
-    // if (userId) {
-    //   console.log("📩 Gửi tin nhắn riêng đến", userId);
-    //   this.hubConnection.invoke('SendPrivateMessage', userId, message)
-    //     .then(() => console.log("✅ Tin nhắn riêng đã được gửi"))
-    //     .catch(err => console.error("❌ Gửi tin nhắn riêng thất bại:", err));
-    // } else if (groupId) {
-    //   console.log("📩 Gửi tin nhắn nhóm đến", groupId);
-    //   this.hubConnection.invoke('SendGroupMessage', groupId, message)
-    //     .then(() => console.log("✅ Tin nhắn nhóm đã được gửi"))
-    //     .catch(err => console.error("❌ Gửi tin nhắn nhóm thất bại:", err));
-    // } else {
-    //   console.error("❌ Cần cung cấp userId hoặc groupId để gửi tin nhắn.");
-    // }
+    else {
+      this.hubConnection.invoke('SendGroupMessage', message)
+        .then(() => console.log("✅ Tin nhắn nhóm đã được gửi", message))
+        .catch(err => console.error("❌ Gửi tin nhắn nhóm thất bại:", err));
+    }
+
   }
   
 
-  joinGroup(groupId: string) {
-    this.hubConnection.invoke('JoinChatRoom', groupId)
+  joinGroup(groupId: number) {
+    this.hubConnection.invoke('JoinGroup', groupId)
       .then(() => console.log(`📌 Đã tham gia nhóm ${groupId}`))
       .catch(err => console.error("❌ Lỗi tham gia nhóm:", err));
   }
@@ -133,6 +135,22 @@ export class SignalRService {
       .catch(err => console.error("❌ Lỗi rời nhóm:", err));
   }
   
+  // Trong SignalRService
+  async waitForConnection(): Promise<void> {
+    return new Promise((resolve) => {
+      if (this.hubConnection?.state === signalR.HubConnectionState.Connected) {
+        resolve();
+      } else {
+        const check = setInterval(() => {
+          if (this.hubConnection?.state === signalR.HubConnectionState.Connected) {
+            clearInterval(check);
+            resolve();
+          }
+        }, 100);
+      }
+    });
+  }
+
   
 
   stopConnection() {

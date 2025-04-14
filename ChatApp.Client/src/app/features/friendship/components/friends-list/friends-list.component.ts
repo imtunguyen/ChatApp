@@ -30,28 +30,24 @@ export class FriendsListComponent {
   }
   
   loadFriends() {
+    this.friendsList = []; 
     this.friendShipService.getFriends(this.currentUser.id).subscribe(
       (res: FriendShip[]) => {
         res.forEach(friendship => {
-          if (friendship.requesterId === this.currentUser.id) {
-            this.authService.getUserById(friendship.addresseeId).subscribe(
-              (user: User) => {
-                this.friendsList.push(user);
-              }
-            );
-          } else {
-            this.authService.getUserById(friendship.requesterId).subscribe(
-              (user: User) => {
-                this.friendsList.push(user);
-              }
-            );
-          }
+          const friendId = friendship.requesterId === this.currentUser.id
+            ? friendship.addresseeId
+            : friendship.requesterId;
+  
+          this.authService.getUserById(friendId).subscribe(
+            (user: User) => {
+              this.friendsList.push(user);
+            }
+          );
         });
       }
     );
-      
   }
-
+  
   removeFriend(friendId: string) {
     console.log('Friend removed!');
     this.friendShipService.updateFriendShip(this.currentUser.id, friendId, FriendShipStatus.None).subscribe(

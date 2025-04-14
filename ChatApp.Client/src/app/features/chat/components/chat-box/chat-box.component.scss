@@ -177,7 +177,7 @@ $light-bg: #ffffff;
       }
     }
 
-    button {
+    .custom-button {
       background: linear-gradient(to right, #007bff, #0056b3);
       color: #ffffff;
       border: none;
@@ -187,18 +187,31 @@ $light-bg: #ffffff;
       font-weight: bold;
       cursor: pointer;
       transition: all 0.3s ease;
-
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    
       &:hover {
         background: linear-gradient(to right, #0056b3, #003f7f);
         transform: translateY(-2px);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
-
+    
       i {
         font-size: 1.25rem;
       }
-      
+
+      &:disabled,
+      &.disabled {
+        background: #cccccc !important;
+        color: #666666 !important;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+        
+      }
     }
+    
   }
 
   .image-container {

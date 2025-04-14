@@ -45,6 +45,10 @@ namespace ChatApp.Application.Services.Implementations
 
                 groupEntity.AvatarUrl = cloudinaryResult.Url;
             }
+            else
+            {
+                groupEntity.AvatarUrl = "https://res.cloudinary.com/dlhwuvhhp/image/upload/v1744597274/user-07-512_hknxaa.webp";
+            }
 
             await _unitOfWork.GroupRepository.AddAsync(groupEntity);
             return await _unitOfWork.CompleteAsync()

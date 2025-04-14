@@ -103,22 +103,28 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     if (changes['selectedUser']?.currentValue && this.currentUser?.id && changes['selectedUser'].currentValue.id) {
       this.selectedGroup = null;
       this.resetValues();
+  
       setTimeout(() => {
+        if (!this.selectedUser) return; 
         this.loadMessages();
         this.scrollToBottom();
         this.loadFriendShipStatus(this.selectedUser.id);
-      }, 0);
-      console.log("day la selectUser", this.selectedUser)
-    } else if (changes['selectedGroup'] && changes['selectedGroup'].currentValue) {
+      }, 100);
+    } else if (changes['selectedGroup']?.currentValue) {
       this.selectedUser = null;
       this.resetValues();
-      this.loadMessagesGroup();
-      this.scrollToBottom();
-      this.loadRoles();
-
-      console.log("Đã chọn Group:", this.selectedGroup);
+      this.signalRService.waitForConnection();
+      this.signalRService.joinGroup(this.selectedGroup.id);
+      setTimeout(() => {
+        if (!this.selectedGroup) return;
+        this.loadMessagesGroup();
+        this.scrollToBottom();
+        this.loadRoles();
+      }, 100);
     }
   }
+  
+  
   ngOnInit(): void {
     console.log("[DEBUG] ChatBoxComponent khởi tạo");
     this.currentUser = this.authService.getCurrentUser();
@@ -130,12 +136,17 @@ export class ChatBoxComponent implements OnInit, OnChanges{
           if (!res) {
             console.error("res bị null hoặc undefined!");
           } else {
-            console.log("Tin nhắn hợp lệ, cập nhật giao diện.");
-            this.messages.push(res);
-            this.scrollToBottom();
+            // Kiểm tra nếu tin nhắn đã có trong mảng thì không thêm vào
+          
+              console.log("Tin nhắn hợp lệ, cập nhật giao diện.");
+              this.messages.push(res);
+              this.cdr.detectChanges(); // Đảm bảo giao diện được cập nhật
+              this.scrollToBottom();
+            
           }
         }
       });
+      
     }
     
     
@@ -217,9 +228,7 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     this.messageService.getMessagesThread(this.params, this.currentUser.id, this.selectedUser.id)
       .subscribe({
         next: (response) => {
-          console.log("Raw API Response:", response);
           this.messages = response.items || [];
-          console.log("Final Messages:", this.messages);
         },
         error: (error) => {
           console.error("Error fetching messages:", error);
@@ -239,7 +248,6 @@ export class ChatBoxComponent implements OnInit, OnChanges{
 
     
   updateMessage(message: Message) {
-    console.log("update message", message)
     if(message.senderId !== this.currentUser.id) return;
     this.originalMessage = message.content;
     this.idMessage = message.id;
@@ -247,10 +255,17 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     this.isEditing = true;
   }
 
+  cancelEditing() {
+    this.isEditing = false;
+    this.resetMessageInput();
+  }
+
   deleteMessage(messageId: number) {
     this.messageService.deleteMessage(messageId).subscribe({
       next: () => {
-        this.messages = this.messages.filter(m => m.id !== messageId);
+        this.toastrService.showSuccess("Đã thu hồi tin nhắn");
+        this.loadMessages();
+        this.loadMessagesGroup();
       },
       error: (error) => console.log(error)
     });
@@ -266,7 +281,6 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     formData.append('id', this.idMessage.toString()); 
     formData.append('content', this.newMessage);
     formData.append('recipientId', this.selectedUser?.id || null);
-
     formData.append('senderId', this.currentUser.id);
   
     this.selectedFiles.forEach(file => formData.append('files', file.file));
@@ -277,7 +291,7 @@ export class ChatBoxComponent implements OnInit, OnChanges{
         formData.append('files', blob, 'recording.wav');
       }
   
-      if(this.idMessage === 0){
+      if(this.idMessage === 0 && this.isEditing === false){
         this.sendMessageToServer(formData);
       } else {
         this.messageService.updateMessage(formData).subscribe({
@@ -304,11 +318,11 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   
   private sendMessageToServer(formData: FormData) {
     if(this.selectedGroup){
+
       formData.append('groupId', this.selectedGroup.id);
       this.messageService.addMessage(formData).subscribe({
         next: (response) => {
           const message = response as Message;
-          this.messages.push(message);
           this.signalRService.sendMessage(message);
           this.messageService.notifyMessageUpdate();
           this.scrollToBottom();
@@ -331,60 +345,91 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     }
     
   }
-  
+
+
   loadMessages() {
     if (this.loading || !this.selectedUser?.id || !this.currentUser?.id) return;
     this.loading = true;
-    console.log("params", this.params)
+  
     this.messageService
       .getMessagesThread(this.params, this.currentUser.id, this.selectedUser.id)
       .subscribe((result) => {
-        console.log("Raw API Response:", result);
-        if (result.items) {
-          this.messages = [...result.items.reverse(), ...this.messages];
-        }
-        console.log('messages', this.messages);
+        const newMessages = result.items ?? [];
+  
+        // Cập nhật lại từng message theo id
+        const messagesMap = new Map(this.messages.map(m => [m.id, m]));
+  
+        newMessages.forEach(newMsg => {
+          messagesMap.set(newMsg.id, newMsg); // cập nhật hoặc thêm mới
+        });
+  
+        // Gộp lại và sort theo thời gian (nếu cần)
+        this.messages = Array.from(messagesMap.values()).sort((a, b) => 
+          new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
+        );
+  
         this.pagination = result.pagination || {
           currentPage: 1,
           itemPerPage: 10,
           totalItems: 0,
           totalPages: 1,
         };
+  
         this.loading = false;
+        this.cdr.detectChanges(); // đảm bảo render lại
       });
   }
+  
+  
+  
+ 
 
   loadMessagesGroup() {
-    if (this.loading) return;
+    if (this.loading || !this.selectedGroup?.id) return;
     this.loading = true;
-    
     this.messageService
       .getMessagesGroup(this.params, this.selectedGroup.id)
       .subscribe((result) => {
-        if (result.items) {
-          this.messages = [...result.items.reverse(), ...this.messages];
-          
-        }
-        console.log('messages', this.messages);
-        this.messages.forEach(message => {
-          this.getUserById(message.senderId).subscribe({
-            next: (user : any) => {
-              this.avatars[message.senderId] = user.profilePictureUrl;
-            },
-            error: (error: any) => {
-              console.log(error);
-            }
-          });
+        const newMessages = result.items ?? [];
+  
+        // Dùng Map để cập nhật hoặc thêm message theo id
+        const messagesMap = new Map(this.messages.map(m => [m.id, m]));
+        newMessages.forEach(newMsg => {
+          messagesMap.set(newMsg.id, newMsg); // update hoặc thêm mới
         });
+  
+        // Cập nhật lại this.messages và sort theo thời gian nếu cần
+        this.messages = Array.from(messagesMap.values()).sort((a, b) =>
+          new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
+        );
+  
+        // Cập nhật avatar cho các sender mới
+        this.messages.forEach(message => {
+          if (!this.avatars[message.senderId]) {
+            this.getUserById(message.senderId).subscribe({
+              next: (user: any) => {
+                this.avatars[message.senderId] = user.profilePictureUrl;
+              },
+              error: (error: any) => {
+                console.log(error);
+              }
+            });
+          }
+        });
+  
+        // Pagination
         this.pagination = result.pagination || {
           currentPage: 1,
           itemPerPage: 10,
           totalItems: 0,
           totalPages: 1,
         };
+  
         this.loading = false;
+        this.cdr.detectChanges(); // đảm bảo cập nhật giao diện
       });
   }
+  
 
   isImage(file: MessageFile): boolean {
     return file.fileType === MessageType.Image;
@@ -398,7 +443,6 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   
 
   onFileSelected(event: any) {
-    console.log("hhhhhhhhhhhhhh")
     const files: FileList = event.target.files;
     const newFiles: { src: string; file: File}[] = [];
 
@@ -473,7 +517,10 @@ export class ChatBoxComponent implements OnInit, OnChanges{
 
   resetMessageInput() {
     this.newMessage = '';
+    this.originalMessage = '';
+    this.idMessage = 0;
     this.selectedFiles = [];
+    this.audioUrl = '';
   }
 
   // Group
@@ -591,13 +638,12 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   unblockUser(userId: string) {
     this.friendShipService.getFriendShips(this.currentUser.id, userId).subscribe({
       next: (friendShip) => {
-        if(friendShip.addresseeId === this.currentUser.id){
+        if(friendShip && friendShip.addresseeId === this.currentUser.id){
           this.toastrService.showError("Không thể bỏ chặn");
           return;
         }
         this.friendShipService.updateFriendShip(this.currentUser.id, userId, FriendShipStatus.Accepted).subscribe({
           next: (response) => {
-            console.log("Unblock user response:", response);
             this.toastrService.showSuccess("Đã bỏ chặn người dùng");
             this.btnFriendShipText = 'Chặn';
             this.loadFriendShipStatus(userId);
@@ -645,8 +691,7 @@ export class ChatBoxComponent implements OnInit, OnChanges{
       this.selectedUsers = this.selectedUsers.filter(u => u.id !== user.id);
       this.selectedUserIds = this.selectedUserIds.filter(id => id !== user.id);
     }
-  
-    console.log("Selected Users:", this.selectedUsers);
+
   }
   
 
@@ -659,7 +704,6 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   
     this.groupService.addMemberToGroup(userGroups).subscribe({
       next: (response) => {
-        console.log("Add members response:", response);
         this.addMemberVisible = false;
         this.loadUserGroups();
       },
@@ -669,9 +713,6 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     });
   }
   removeMemberFromGroup(userId: string) {
-    console.log("Remove member from group:", userId, this.selectedGroup.id);
-  
-    // Kiểm tra số lượng GroupOwner trong danh sách userGroups (đã load trước đó)
     const groupOwners = this.userGroups.filter(user => user.roleName === "GroupOwner");
   
     if (groupOwners.length === 1 && groupOwners[0].id === userId) {
@@ -682,9 +723,16 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     // Nếu hợp lệ, thực hiện xóa thành viên
     this.groupService.removeMember(userId, this.selectedGroup.id).subscribe({
       next: (response) => {
-        console.log("Remove member response:", response);
-        this.toastrService.showSuccess("Đã xóa thành viên");
-  
+        if(userId === this.currentUser.id){
+          this.toastrService.showSuccess("Đã rời nhóm");
+          this.selectedGroup = null; 
+          this.router.navigate(['/chat']);
+          this.groupService.notifyGroupUpdate();
+        }
+        else{
+          this.toastrService.showSuccess("Đã xóa thành viên");
+        }
+       
         // Load lại danh sách userGroups sau khi xóa
         this.loadUserGroups();
         this.groupService.notifyGroupUpdate();
@@ -704,10 +752,8 @@ export class ChatBoxComponent implements OnInit, OnChanges{
       isRemoved: member.isRemoved,
       removedAt: member.removedAt
     };
-    console.log("Update role:", userGroup);
     this.groupService.updateRole(userGroup).subscribe({
       next: (response) => {
-        console.log("Update role response:", response);
         this.loadUserGroups();
         this.toastrService.showSuccess("Đã cập nhật vai trò");
       },
@@ -720,7 +766,6 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   deleteGroup() {
     this.groupService.deleteGroup(this.selectedGroup.id).subscribe({
       next: (response) => {
-        console.log("Delete group response:", response);
         this.toastrService.showSuccess("Đã xóa nhóm");
         this.router.navigate(['/chat']);
       },

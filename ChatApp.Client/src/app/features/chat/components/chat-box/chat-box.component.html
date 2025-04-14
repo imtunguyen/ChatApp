@@ -43,7 +43,7 @@
           <div [ngClass]="message.senderId === currentUser.id ? 'text-end from-me d-flex justify-content-end align-items-start' : 'text-start from-others d-flex justify-content-start align-items-start'">
             
             <!-- Three-dot menu -->
-            <div class="message-menu" *ngIf="message.senderId === currentUser.id">
+            <div class="message-menu" *ngIf="message.senderId === currentUser.id && !message.isDeleted">
               <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="bi bi-three-dots-vertical"></i>
               </button>
@@ -56,12 +56,28 @@
             </div>
         
             <!-- Tin nhắn -->
+             <div>
+              @if(selectedUser) {
+                <nz-avatar *ngIf="message.senderId !== currentUser.id" [nzSrc]="selectedUser.profilePictureUrl" nzSize="large" class="me-2"></nz-avatar>
+              }@else if (selectedGroup) {
+                <nz-avatar *ngIf="message.senderId !== currentUser.id" [nzSrc]="getUserById(message.senderId)?.profilePictureUrl" nzSize="large" class="me-2"></nz-avatar>
+              }
+              
+             </div>
             <div class="message-wrapper bg-light rounded-3 p-2 d-inline-block max-w-75 position-relative">
-              <div class="text" *ngIf="message.content">{{ message.content }}</div>
-              <div class="file-content" *ngFor="let file of message.files">
-                <img *ngIf="isImage(file)" [src]="file.url" class="message-media" />
-                <video *ngIf="isVideo(file)" [src]="file.url" controls class="message-media"></video>
-                <audio *ngIf="isAudio(file)" [src]="file.url" controls class="message-media"></audio>
+              
+              <div *ngIf="message.content && !message.isDeleted" class="text">
+                {{ message.content }}
+              </div>
+              <div *ngIf="message.isDeleted" class="text text-muted fst-italic">
+                Tin nhắn đã bị thu hồi
+              </div>
+              <div *ngIf="!message.isDeleted">
+                <div class="file-content" *ngFor="let file of message.files">
+                  <img *ngIf="isImage(file)" [src]="file.url" class="message-media" />
+                  <video *ngIf="isVideo(file)" [src]="file.url" controls class="message-media"></video>
+                  <audio *ngIf="isAudio(file)" [src]="file.url" controls class="message-media"></audio>
+                </div>
               </div>
             </div>
           </div>
@@ -98,7 +114,7 @@
       </div>
       <div *ngIf="isEditing" class="text-warning">
           Đang chỉnh sửa tin nhắn...
-          <button class="close-button" (click)="isEditing = false">X</button>
+          <button class="close-button" (click)="cancelEditing()">X</button>
 
       </div>
       @if(isBlocked){
@@ -108,19 +124,29 @@
       }@else{
         <div class="chat-input p-3 d-flex align-items-center border-top" *ngIf="selectedUser || selectedGroup">
           <div> 
-            <button nz-button nzType="default" nzShape="circle" (mousedown)="startRecording()" (mouseup)="stopRecording()">
+            <button nz-button nzType="default" class="custom-button" nzShape="circle" (mousedown)="startRecording()" (mouseup)="stopRecording()">
               <i nz-icon nzType="audio"></i>
             </button>
           </div>
          
-          <div class="plus" nz-button nzType="default" nzShape="circle">
-              <label for="fileInputPlus" >
-                 
-                  <i nz-icon nzType="picture"></i>
-           
-                <input type="file" id="fileInputPlus" (change)="onFileSelected($event)" multiple style="display: none;" />
-              </label>
-            </div>
+          <div>
+            <label
+              for="fileInputPlus"
+              nz-button
+              nzType="default"
+              nzShape="circle"
+              class="custom-button"
+            >
+              <i nz-icon nzType="picture"></i>
+              <input
+                type="file"
+                id="fileInputPlus"
+                (change)="onFileSelected($event)"
+                multiple
+                style="display: none"
+              />
+            </label>
+          </div>
             
           
           <input
@@ -134,7 +160,7 @@
     
           <!-- Nút gửi tin nhắn -->
            
-          <button nz-button nzType="primary" [disabled]="isEditing && newMessage === originalMessage" (click)="sendMessage()" class="ms-2">
+          <button nz-button nzType="primary" [disabled]="isEditing && newMessage === originalMessage" (click)="sendMessage()" class="ms-2 custom-button">
             <i nz-icon nzType="send"></i>
           </button>
         </div>
@@ -206,16 +232,16 @@
       <ul>
         <li *ngFor="let file of selectedUser?.files">{{ file }}</li>
       </ul>
-      <div *ngIf="selectedGroup" class="members-container">
+      <div *ngIf="selectedGroup" class="members-container" style="overflow-y: auto; height: calc(100vh - 200px);">
         <h6>Members</h6>
-        <li  *ngFor="let member of userGroups" class="member-item">
+        <li  *ngFor="let member of userGroups" class="member-item" >
           <nz-avatar [nzSrc]="member.profilePictureUrl" nzSize="small"></nz-avatar>
           <span class="member-name">{{ member.fullName }}</span>
           <span class="member-role">({{ member.roleName }})</span>
           
           @if(currentUser.id != member.id && member.roleName == 'Member'){
             <div class="dropdown">
-              <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <nz-icon nzType="ellipsis" nzTheme="outline"></nz-icon>
               </button>
               <ul class="dropdown-menu">
@@ -227,17 +253,11 @@
             </div>
 
           }
-          
-          
-          
-          
         </li>
-     
+      </div>  
       <div *ngIf="selectedGroup">
         <button class="btn btn-danger col-12" (click)="removeMemberFromGroup(currentUser.id)">Rời nhóm</button>
-        <button class="btn btn-secondary col-12" (click)="deleteGroup()">Giải tán nhóm</button>
       </div>
-    </div>  
     </div>
   </div>
 

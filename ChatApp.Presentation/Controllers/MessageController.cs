@@ -45,7 +45,14 @@ namespace ChatApp.Presentation.Controllers
         {
             var message = await _messageService.GetLastMessageAsync(senderId, recipientId);
             return Ok(message);
-        } 
+        }
+
+        [HttpGet("GetLastMessageGroup")]
+        public async Task<ActionResult<MessageDto?>> GetLastMessageGroup(int groupId)
+        {
+            var message = await _messageService.GetLastMessageGroup(groupId);
+            return Ok(message);
+        }
         [HttpPost("Add")]
         public async Task<IActionResult> AddMessage([FromForm] MessageAddDto messageDto)
         {

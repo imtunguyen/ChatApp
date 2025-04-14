@@ -245,6 +245,9 @@
      
   
       .group-main {
+        flex: 1;
+        overflow-y: auto;
+        max-height: calc(100vh - 400px); // bạn có thể điều chỉnh số này nếu cần
         display: flex;
         gap: 15px;
   

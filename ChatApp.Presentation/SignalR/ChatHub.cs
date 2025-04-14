@@ -11,7 +11,7 @@ namespace ChatApp.Presentation.SignalR
     {
         private readonly IUserStatusService _userStatusService;
 
-        private static ConcurrentDictionary<string, string> OnlineUsers = new();
+        private static ConcurrentDictionary<string, HashSet<string>> OnlineUsers = new();
 
         public ChatHub(IUserStatusService userStatusService)
         {
@@ -20,47 +20,82 @@ namespace ChatApp.Presentation.SignalR
 
         public override async Task OnConnectedAsync()
         {
-            var userId = Context.UserIdentifier;
-            if (string.IsNullOrEmpty(userId))
-            {
-                return;
-            }
+            var userId = Context.UserIdentifier; // Lấy userId từ UserIdProvider
+            Console.WriteLine($"[Connected] userId: {userId}, connectionId: {Context.ConnectionId}");
 
-            OnlineUsers[Context.ConnectionId] = userId;
+            if (string.IsNullOrEmpty(userId))
+                return;
+
+            // Thêm connectionId vào danh sách của userId
+            OnlineUsers.AddOrUpdate(userId,
+                new HashSet<string> { Context.ConnectionId },
+                (key, oldSet) =>
+                {
+                    lock (oldSet) { oldSet.Add(Context.ConnectionId); }
+                    return oldSet;
+                });
+
             await _userStatusService.SetUserOnline(userId);
             await Clients.All.SendAsync("UserOnline", userId);
 
             await base.OnConnectedAsync();
         }
-
-
-
         public override async Task OnDisconnectedAsync(Exception exception)
         {
-            if (OnlineUsers.TryRemove(Context.ConnectionId, out var userId))
+            var userId = Context.UserIdentifier;
+            if (string.IsNullOrEmpty(userId))
+                return;
+
+            // Delay nhỏ để đợi các kết nối khác nếu là reload
+            await Task.Delay(1000);
+
+            if (OnlineUsers.TryGetValue(userId, out var connections))
             {
-                await _userStatusService.SetUserOffline(userId);
-                await Clients.All.SendAsync("UserOffline", userId);
+                lock (connections)
+                {
+                    connections.Remove(Context.ConnectionId);
+                    if (connections.Count == 0)
+                    {
+                        OnlineUsers.TryRemove(userId, out _);
+                    }
+                }
+
+                if (!OnlineUsers.ContainsKey(userId))
+                {
+                    await _userStatusService.SetUserOffline(userId);
+                    await Clients.All.SendAsync("UserOffline", userId);
+                }
             }
+
             await base.OnDisconnectedAsync(exception);
         }
 
+
         public async Task SendPrivateMessage(MessageAddDto message)
         {
-            await Clients.User(message.RecipientId!).SendAsync("ReceiveMessage", message);
- 
+            if (OnlineUsers.TryGetValue(message.RecipientId!, out var connections))
+            {
+                var firstConnectionId = connections.FirstOrDefault();
+                if (firstConnectionId != null)
+                {
+                    await Clients.Client(firstConnectionId).SendAsync("ReceiveMessage", message);
+                }
+            }
+
         }
 
-        public async Task SendGroupMessage(string groupId, string content)
+        public async Task SendGroupMessage(MessageAddDto message)
         {
-            await Clients.Group(groupId).SendAsync("ReceiveMessage", content);
-            await Clients.Group(groupId).SendAsync("NewMessageNotification", groupId);
+            await Clients.Group(message.GroupId.ToString()!).SendAsync("ReceiveMessage", message);
         }
 
-        public async Task JoinChatRoom(string groupId)
+        public async Task JoinGroup(int groupId)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
+            var connectionId = Context.ConnectionId;
+            await Groups.AddToGroupAsync(connectionId, groupId.ToString());
+            Console.WriteLine($"✅ Connection {connectionId} joined group {groupId}");
         }
+
 
         public async Task LeaveChatRoom(string groupId)
         {
@@ -69,8 +104,8 @@ namespace ChatApp.Presentation.SignalR
 
         public async Task GetOnlineUsers()
         {
-            var onlineUsers = await _userStatusService.GetOnlineUsers();
-            await Clients.Caller.SendAsync("ReceiveOnlineUsers", onlineUsers);
+            var onlineUserIds = OnlineUsers.Keys.ToList();
+            await Clients.Caller.SendAsync("ReceiveOnlineUsers", onlineUserIds);
         }
 
         public async Task ReceiveNotification(string recipientId, string content)
