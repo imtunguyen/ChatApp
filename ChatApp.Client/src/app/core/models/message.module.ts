@@ -12,7 +12,7 @@ export interface Message{
   id: number;
   content: string;
   senderId: string;
-  recepientId?: string;
+  recipientId?: string;
   groupId?: number;
   sentAt: Date;
   updatedAt: Date;
@@ -22,3 +22,8 @@ export interface Message{
   files: MessageFile[];
   isRead: boolean;
 }
+
+export interface AIResponse {
+  message: string;
+}
+

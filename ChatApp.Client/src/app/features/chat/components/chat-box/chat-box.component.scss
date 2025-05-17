@@ -211,6 +211,19 @@ $light-bg: #ffffff;
         
       }
     }
+    .audio-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .close-button {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background-color: white;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+    }
+    
     
   }
 

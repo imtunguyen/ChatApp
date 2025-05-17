@@ -12,7 +12,7 @@ import { ToastrService } from '../../../../shared/services/toastr.service';
 import { FriendShipStatus } from '../../../../core/models/enum/friendship-status';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { SignalRService } from '../../../../core/services/signalr.service';
-import { BehaviorSubject, distinctUntilChanged, filter, forkJoin, of, Subject, Subscription, switchMap, take, takeUntil, tap } from 'rxjs';
+import { BehaviorSubject, debounceTime, distinctUntilChanged, filter, forkJoin, merge, of, Subject, Subscription, switchMap, take, takeUntil, tap } from 'rxjs';
 import { GroupService } from '../../../../core/services/group.service';
 import { Group } from '../../../../core/models/group.module';
 import { FriendShip } from '../../../../core/models/friendship.module';
@@ -66,6 +66,24 @@ export class ChatListComponent {
   selectedTabIndex = 0;
   private onlineUsersSubscription!: Subscription;
 
+  aiUser: User = {
+    id: 'AI',
+    fullName: 'Trợ lý AI',
+    userName: 'ai',
+    email: '',
+    token: '',
+    profilePictureUrl: 'https://res.cloudinary.com/dlhwuvhhp/image/upload/v1745634283/chat-bot-icon-with-artificial-intelligence-illustration-of-a-cute-robot-in-flat-style-on-a-blue-background-vector_msdc2l.jpg',
+    isOnline: true,
+    lastMessage: 'Trò chuyện với AI',
+    gender: '',
+    isSelected: false,
+    roleId: '',
+    roleName: '',
+    lastMessageTime: new Date(),
+    isMember: false,
+    hasNewMessage : false,
+  }
+
   private destroy$ = new Subject<void>();
   private authService = inject(AuthService);
   private friendShipService = inject(FriendShipService);
@@ -75,68 +93,62 @@ export class ChatListComponent {
   private signalRService = inject(SignalRService);
   constructor(private fb: FormBuilder, private cdr: ChangeDetectorRef) {
    }
-  ngOnInit(): void {
+   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
-    if (!this.currentUser) {
-      this.currentUser = this.authService.getCurrentUser();
-    }
-    this.signalRService.startConnection(this.currentUser.id);
+  
     if (!this.currentUser) {
       console.warn("Current user is undefined, waiting for authentication...");
       return;
     }
-
-
-    // Chờ kết nối thành công mới load online users
+  
+    // Start SignalR connection
+    this.signalRService.startConnection(this.currentUser.id);
+  
+    // Wait until connection is established
     this.signalRService.connectionEstablished$
       .pipe(
         filter(established => established),
         take(1)
       )
-      .subscribe(() => {
-        this.loadOnlineUsers();
-      });
+      .subscribe(() => this.loadOnlineUsers());
+  
     this.loadUsers();
     this.loadFriendShipStatus();
-   
     this.groupForm = this.initializeGroupForm();
-    this.groupService.groupUpdate.subscribe(() => {
-      this.loadGroups();
-    });
-    
-    this.friendShipService.friendShipUpdate.subscribe(() => {
-      this.refreshFriendsAndBlockedList();
-      this.selectedTabIndex = 0;
-    });
-    
-    this.messageService.messageUpdate.subscribe(() => {
-      this.refreshFriendsAndBlockedList();
-    });
-
-    this.signalRService.newMessage$.subscribe({
-      next: (res) => {
-       this.refreshFriendsAndBlockedList();
-      }
-    });
-    
-
+  
+    // Group update
+    this.groupService.groupUpdate
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.loadGroups());
+  
+    merge(
+      this.friendShipService.friendShipUpdate.pipe(tap(() => this.selectedTabIndex = 0)),
+      this.messageService.messageUpdate,
+      this.signalRService.newMessage$
+    )
+      .pipe(
+        debounceTime(200),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => this.refreshFriendsAndBlockedList());
+  
+    // Ensure old subscription is cleared
     if (this.onlineUsersSubscription) {
       this.onlineUsersSubscription.unsubscribe();
     }
-
-    
-
+  
     this.authService.getOnlineUsers();
   }
+  
   ngOnDestroy(): void {
     if (this.onlineUsersSubscription) {
       this.onlineUsersSubscription.unsubscribe();
     }
     this.destroy$.next();
-   this.destroy$.complete();
+    this.destroy$.complete();
   }
-
-  private refreshFriendsAndBlockedList() {
+  
+  private refreshFriendsAndBlockedList(): void {
     this.loadFriends();
     this.loadGroups();
     this.loadBlockedList();
@@ -157,7 +169,9 @@ export class ChatListComponent {
   onCategoryChange(value: string) {
     this.selectedCategory = value;
     if(value === 'blocked') {
+      this.loadBlockedList();
       this.filteredFriendsList = [...this.blockedList];
+      console.log("blocked list", this.filteredFriendsList);
     }
     else {
       this.filteredFriendsList = [...this.friendsList];
@@ -189,7 +203,7 @@ export class ChatListComponent {
   getLastMessage(senderId: string, recipientId: string) {
     this.messageService.getLastMessage(senderId, recipientId).subscribe((message) => {
       if (message) {
-        this.lastMessage = message.senderId === this.currentUser.id ? message.recepientId : message.senderId;
+        this.lastMessage = message.senderId === this.currentUser.id ? message.recipientId : message.senderId;
       } else {
         this.lastMessage = null;
       }
@@ -199,7 +213,7 @@ export class ChatListComponent {
   getLastMessageGroup(groupId: number) {
     this.messageService.getLastMessageGroup(groupId).subscribe((message) => {
       if (message) {
-        this.lastMessage = message.senderId === this.currentUser.id ? message.recepientId : message.senderId;
+        this.lastMessage = message.senderId === this.currentUser.id ? message.recipientId : message.senderId;
       } else {
         this.lastMessage = null;
       }
@@ -266,21 +280,42 @@ export class ChatListComponent {
   
 
   loadBlockedList() {
+    console.log("load blocked list");
     this.blockedList = [];
     this.friendShipService.getFriendShipsByUser(this.currentUser.id, FriendShipStatus.Blocked).subscribe(
       (res: FriendShip[]) => {
+        const blockedUsers: User[] = [];
+        let count = 0;
+  
+        if (res.length === 0) {
+          this.blockedList = [];
+          this.filteredFriendsList = [];
+          return;
+        }
+  
         res.forEach(friendship => {
           if (friendship.requesterId === this.currentUser.id) {
             this.authService.getUserById(friendship.addresseeId).subscribe(
               (user: User) => {
-                this.blockedList= [...this.blockedList, user];
+                blockedUsers.push(user);
+                count++;
+  
+                // Khi đã lấy xong toàn bộ user
+                if (count === res.length) {
+                  this.blockedList = blockedUsers;
+                  this.filteredFriendsList = [...this.blockedList];
+                  console.log("blocked list ready:", this.filteredFriendsList);
+                }
               }
             );
+          } else {
+            count++;
           }
         });
       }
     );
   }
+  
 
   loadFriends() {
     this.friendsList = [];
@@ -326,7 +361,7 @@ export class ChatListComponent {
   
         forkJoin(requests).subscribe(() => {
           // Sắp xếp danh sách theo thời gian tin nhắn mới nhất
-          this.filteredFriendsList = [...this.friendsList].sort((a, b) =>
+          this.filteredFriendsList = [this.aiUser, ...this.friendsList].sort((a, b) =>
             b.lastMessageTime.getTime() - a.lastMessageTime.getTime()
           );
         });
@@ -484,6 +519,8 @@ export class ChatListComponent {
     this.groupService.addGroup(formData).subscribe({
       next: (response) => {
         this.toastService.showSuccess('Tạo nhóm thành công');
+        this.refreshFriendsAndBlockedList();
+        this.groupForm.reset();
         this.isGroupVisible = false;
       },
       error: (error) => {

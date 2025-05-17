@@ -107,10 +107,13 @@
             <nz-spin nzSimple></nz-spin> Recording...
         </div>
     
-        <div *ngIf="audioUrl">
-            <audio [src]="audioUrl" controls></audio>
-            <button nz-button nzType="danger" (click)="audioUrl = null">X</button>
+        <div *ngIf="audioUrl" class="audio-wrapper">
+          <audio [src]="audioUrl" controls></audio>
+          <button nz-button nzType="text" nzShape="circle" (click)="audioUrl = null" class="close-button">
+            <i nz-icon nzType="close" nzTheme="outline"></i>
+          </button>
         </div>
+        
       </div>
       <div *ngIf="isEditing" class="text-warning">
           Đang chỉnh sửa tin nhắn...
@@ -119,7 +122,7 @@
       </div>
       @if(isBlocked){
         <div class="text-center text-muted">
-          <p>Bạn đã chặn người dùng này</p><button nz-button nzType="primary" (click)="unblockUser(selectedUser.id)">Bỏ chặn</button>
+          <p>Bạn đã chặn người dùng này</p><button class="btn btn-secondary" nz-button nzType="primary" (click)="unblockUser(selectedUser.id)">Bỏ chặn</button>
         </div>
       }@else{
         <div class="chat-input p-3 d-flex align-items-center border-top" *ngIf="selectedUser || selectedGroup">
@@ -180,7 +183,7 @@
           <nz-avatar *ngIf="selectedGroup" [nzSrc]="selectedGroup?.avatarUrl" nzSize="large" class="mb-2"></nz-avatar>
       </div>
       <hr />
-      <button *ngIf="selectedGroup" nz-button nzType="default" nzShape="circle" class="action-button" (click)="showAddMemberModal(selectedGroup.id)">
+      <button *ngIf="selectedGroup" nz-button nzType="default" nzShape="circle" class="action-button btn btn-primary" (click)="showAddMemberModal(selectedGroup.id)">
         <nz-modal [(nzVisible)]="addMemberVisible" nzTitle="Thêm thành viên " (nzOnCancel)="handleMemberCancel()"
          [nzFooter]="memberFooter">
           <ng-container *nzModalContent>
@@ -226,9 +229,8 @@
 
           </ng-container>
         </nz-modal>
-        <nz-icon nzType="usergroup-add" nzTheme="outline" />
+        <nz-icon  nzType="usergroup-add" nzTheme="outline" />
       </button>
-      <h6>Shared Files</h6>
       <ul>
         <li *ngFor="let file of selectedUser?.files">{{ file }}</li>
       </ul>

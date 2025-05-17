@@ -21,6 +21,7 @@ import { FriendShipService } from '../../../../core/services/friendship.service'
 import { FriendShipStatus } from '../../../../core/models/enum/friendship-status';
 import { ToastrService } from '../../../../shared/services/toastr.service';
 import { NzMenuModule } from 'ng-zorro-antd/menu';
+import { AiService } from '../../../../core/services/ai.service';
 @Component({
   selector: 'app-chat-box',
   imports: [CommonModule, NzAvatarComponent, NzIconModule, NzCheckboxModule, FormsModule, NzMenuModule, NzSpinModule, NzAvatarModule, NzModalModule, NzInputModule],
@@ -95,6 +96,7 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   private groupService = inject(GroupService);
   private friendShipService = inject(FriendShipService);
   private toastrService = inject(ToastrService);
+  private aiService = inject(AiService);
 
   constructor(private router: Router, private cdr: ChangeDetectorRef) {
   
@@ -278,7 +280,7 @@ export class ChatBoxComponent implements OnInit, OnChanges{
     }
   
     const formData = new FormData();
-    formData.append('id', this.idMessage.toString()); 
+    formData.append('id', this.idMessage.toString());
     formData.append('content', this.newMessage);
     formData.append('recipientId', this.selectedUser?.id || null);
     formData.append('senderId', this.currentUser.id);
@@ -291,7 +293,48 @@ export class ChatBoxComponent implements OnInit, OnChanges{
         formData.append('files', blob, 'recording.wav');
       }
   
-      if(this.idMessage === 0 && this.isEditing === false){
+      if (this.selectedUser?.id === 'AI') {
+        const prompt = this.newMessage.trim();
+        this.aiService.askAI(prompt, ).subscribe((response) => {
+          const reply = response.message;
+          console.log(        "[DEBUG] Phản hồi từ AI:", reply);
+          const aiMessage: Message = {
+            id: 0,
+            content: reply,
+            senderId: 'AI',
+            recipientId: this.currentUser.id,
+            sentAt: new Date(),
+            isRead: true,
+            updatedAt: new Date(),
+            status: '',
+            type: MessageType.Document,
+            files: [],
+            isDeleted: false 
+          };
+        
+          this.messages.push({
+            id: 0,
+            content: prompt,
+            senderId: this.currentUser.id,
+            recipientId: 'AI',
+            sentAt: new Date(),
+            isRead: true,
+            updatedAt: new Date(),
+            status: '',
+            type: MessageType.Document,
+            files: [],
+            isDeleted: false 
+          });
+        
+          this.messages.push(aiMessage);
+          this.scrollToBottom();
+          this.resetMessageInput();
+        });
+        return;
+      }
+      
+  
+      if (this.idMessage === 0 && !this.isEditing) {
         this.sendMessageToServer(formData);
       } else {
         this.messageService.updateMessage(formData).subscribe({
@@ -317,8 +360,7 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   }
   
   private sendMessageToServer(formData: FormData) {
-    if(this.selectedGroup){
-
+    if (this.selectedGroup) {
       formData.append('groupId', this.selectedGroup.id);
       this.messageService.addMessage(formData).subscribe({
         next: (response) => {
@@ -329,8 +371,7 @@ export class ChatBoxComponent implements OnInit, OnChanges{
           this.resetMessageInput();
         }
       });
-    } else{
-
+    } else {
       this.messageService.addMessage(formData).subscribe({
         next: (response) => {
           const message = response as Message;
@@ -343,9 +384,8 @@ export class ChatBoxComponent implements OnInit, OnChanges{
         error: (error) => console.log(error)
       });
     }
-    
   }
-
+  
 
   loadMessages() {
     if (this.loading || !this.selectedUser?.id || !this.currentUser?.id) return;
@@ -638,10 +678,7 @@ export class ChatBoxComponent implements OnInit, OnChanges{
   unblockUser(userId: string) {
     this.friendShipService.getFriendShips(this.currentUser.id, userId).subscribe({
       next: (friendShip) => {
-        if(friendShip && friendShip.addresseeId === this.currentUser.id){
-          this.toastrService.showError("Không thể bỏ chặn");
-          return;
-        }
+       
         this.friendShipService.updateFriendShip(this.currentUser.id, userId, FriendShipStatus.Accepted).subscribe({
           next: (response) => {
             this.toastrService.showSuccess("Đã bỏ chặn người dùng");

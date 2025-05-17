@@ -1,6 +1,7 @@
 ﻿using ChatApp.Application.DTOs.Message;
 using ChatApp.Application.Parameters;
 using ChatApp.Application.Services.Abstracts;
+using ChatApp.Infrastructure.Services;
 using ChatApp.Presentation.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -85,6 +86,14 @@ namespace ChatApp.Presentation.Controllers
             }
 
             return NotFound(new { message = "Message not found or already read." });
+        }
+
+        [HttpPost("ask-ai")]
+        public async Task<IActionResult> AskAI([FromBody] AskAIRequest request, [FromServices] GeminiService gemini)
+        {
+            var result = await gemini.AskGeminiAsync(request.Message);
+            return Ok(new { message = result });
+
         }
 
 
